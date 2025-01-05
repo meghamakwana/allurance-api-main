@@ -121,6 +121,7 @@ router.post('/users', async (req, res) => {
         }
         return sendResponse(res, { error: ManageResponseStatus('notFound'), status: false }, 404);
     } catch (error) {
+        console.log(error)
         return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
     }
 });

@@ -245,10 +245,9 @@ router.post('/', upload.any(), async (req, res) => {
 // List
 router.get('/', async (req, res) => {
   try {
-
     await authenticateToken(req);
-
     const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+   
     const id = getQueryParamId(fullUrl);
     const baseQuery = `SELECT 
           u.*, ir.name as rolename, ud.date_of_birth, ud.anniversary, ud.gender, ud.address, st.name as state, ud.state_id, sd.District as district, ud.district_id, ud.pincode, ud.govt_id_number, ud.govt_id_upload, ud.pan_number, ud.pan_upload, ud.my_referral_code 

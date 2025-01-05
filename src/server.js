@@ -114,7 +114,6 @@ app.use((req, res, next) => {
 app.use(bodyParser.json({ limit: '20mb' }));
 app.use(bodyParser.urlencoded({ limit: '20mb', extended: true }));
 
-
 app.use('/api/users', userRoutes);
 app.use('/api/ticket', ticketRoutes);
 app.use('/api/about', aboutRoutes);

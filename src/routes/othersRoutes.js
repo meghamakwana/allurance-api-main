@@ -11,7 +11,10 @@ const tableName3 = TABLE.PRODUCT;
 const tableName4 = TABLE.SETTINGS;
 const ine_settings_ModuleID = TABLE.SETTINGS_MODULE_ID;
 const tableName5 = TABLE.STATE_DISTRICT;
-
+const statestable = TABLE.STATE_TABLE;
+const pincodetable = TABLE.PINCODE_TABLE;
+const postofficetable = TABLE.POSTOFFICE_TABLE;
+const districttable = TABLE.DISTRICT_TABLE;
 /****************** Activity Log Start ******************/
 
 // List
@@ -135,15 +138,24 @@ router.put('/sitesetting', async (req, res) => {
 /****************** State - Endpoint1 Start ******************/
 
 // List
-router.get('/state_district/endpoint1', async (req, res) => {
+router.post('/state_district/endpoint1', async (req, res) => {
     try {
+        const { Pincode } = req.body;
+
+        // Validate request data
+        if (!Pincode) {
+            return sendResponse(res, { error: 'Pincode fields are required', status: false }, 400);
+        }
+
         const [results] = await pool.query(`SELECT 
-                id as id, 
-                name as StateName, 
+                state_id as id, 
+                StateName, 
+                District
                 0 as district_count
-            FROM \`${TABLE.STATE_TABLE}\`
-            `);
+            FROM \`${tableName5}\`
+             WHERE Pincode=?`, [Pincode]);
         if (results.length > 0) {
+
             return sendResponse(res, { data: results, message: ManageResponseStatus('fetched'), status: true, count: results.length }, 200);
         }
         return sendResponse(res, { message: ManageResponseStatus('notFound'), status: false }, 400);
@@ -186,14 +198,14 @@ router.post('/state_district/endpoint2', async (req, res) => {
 // List
 router.post('/state_district/endpoint3', async (req, res) => {
     try {
-        const { District } = req.body;
+        //const { District } = req.body;
 
         // Validate request data
-        if (!District) {
-            return sendResponse({ error: 'District fields are required', status: false }, 400);
-        }
+        // if (!District) {
+        //     return sendResponse(res,{ error: 'District fields are required', status: false }, 400);
+        // }
 
-        const [results] = await pool.query(`SELECT * FROM \`${tableName5}\` WHERE District = ?`, [District]);
+        const [results] = await pool.query(`SELECT id,  CAST(Pincode AS CHAR) as Pincode FROM \`${tableName5}\` LIMIT 2`);
         if (results.length > 0) {
             return sendResponse(res, { data: results, message: ManageResponseStatus('fetched'), status: true, count: results.length }, 200);
         }
@@ -204,6 +216,37 @@ router.post('/state_district/endpoint3', async (req, res) => {
     }
 });
 
+router.get('/pincodes', async (req, res) => {
+    try {
+        const [results] = await pool.query(`SELECT MIN(id) AS id, CAST(Pincode AS CHAR) as Pincode FROM \`${pincodetable}\` GROUP BY Pincode`);
+        if (results.length > 0) {
+            return sendResponse(res, { data: results, message: ManageResponseStatus('fetched'), status: true, count: results.length }, 200);
+        }
+        return sendResponse(res, { message: ManageResponseStatus('notFound'), status: false }, 400);
+
+    } catch (error) {
+        return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
+    }
+});
+router.post('/post_offices', async (req, res) => {
+    try {
+        const { Pincode } = req.body;
+
+        //Validate request data
+        if (!Pincode) {
+            return sendResponse(res,{ error: 'Pincode fields are required', status: false }, 400);
+        }
+
+        const [results] = await pool.query(`SELECT s.id AS StateId,s.name AS StateName, d.id AS DistrictId, d.name AS DistrictName, po.id AS post_office_id, TRIM(po.name) AS post_office_name FROM \`${pincodetable}\` AS p INNER JOIN \`${postofficetable}\` po ON p.post_office_id = po.id INNER JOIN \`${districttable}\`  d ON po.district_id = d.id INNER JOIN \`${statestable}\` s ON d.state_id = s.id WHERE p.pincode =?`,[Pincode]);
+        if (results.length > 0) {
+            return sendResponse(res, { data: results, message: ManageResponseStatus('fetched'), status: true, count: results.length }, 200);
+        }
+        return sendResponse(res, { message: ManageResponseStatus('notFound'), status: false }, 400);
+
+    } catch (error) {
+        return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
+    }
+});
 /****************** Pincode - Endpoint3 End ******************/
 
 module.exports = router;

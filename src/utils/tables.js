@@ -153,6 +153,9 @@ const TABLES = {
 
 
   STATE_TABLE: 'ine_states',
+  PINCODE_TABLE:'ine_pincodes',
+  POSTOFFICE_TABLE:'ine_post_offices',
+  DISTRICT_TABLE: 'ine_districts',
   
   OTHER_ACTIVITY: 'ine_other_activity',
   ABOUT_US: 'ine_about_us',

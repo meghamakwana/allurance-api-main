@@ -65,7 +65,7 @@ router.get('/sequenceNumber', async (req, res) => {
     try {
         const [results] = await pool.query(`
             SELECT 
-              MAX(sequence_number)+1 as seq
+              LPAD((MAX(sequence_number)+1), 2, '0') as seq
             FROM ${tableName} 
             WHERE status!=0
           `);

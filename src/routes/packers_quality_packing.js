@@ -206,9 +206,9 @@ router.post('/update_packing_serial_number', async (req, res) => {
 router.get('/get_packing_reports', async (req, res) => {
     try {
         const [packersPackings] = await pool.query(`SELECT pqp.id AS packingId, pqp.request_id, pqp.created_at, COUNT(psn.id) AS numer_of_request, ir.batch_number, ir.designer_id as model_number FROM ${tableName7} AS pqp 
-            LEFT JOIN ${tableName} AS psn ON pqp.id = psn.packers_quality_id 
+            LEFT JOIN ${tableName} AS psn ON pqp.id = psn.packers_packing_id 
             LEFT JOIN ${tableName2} as ir on ir.id = psn.replicator_id
-            GROUP BY pqp.id`);
+            GROUP BY pqp.id,ir.batch_number,ir.designer_id`);
 
         if (packersPackings.length > 0) {
             let results = [];
