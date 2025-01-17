@@ -11,6 +11,7 @@ const dbConfig = {
     database: process.env.DB_NAME,
 };
 
+
 async function insertData() {
   const connection = await mysql.createConnection(dbConfig);
   function toTitleCase(str) {
@@ -100,6 +101,22 @@ async function insertData() {
     await connection.end();
   }
 }
+async function insertpermissions(){
+  const connection = await mysql.createConnection(dbConfig);
+  const [rows] = await connection.execute(
+    'SELECT id FROM ine_modules');
+  if (rows.length) {
+    for (const row of rows) {
+       let id = row.id;
+      await connection.execute(
+        'INSERT IGNORE INTO ine_permissions (role_id, module_id, read_access, add_access, update_access, delete_access) VALUES (1, ?, 1, 1, 1, 1)',
+        [id]
+      );
+     console.log('ine_permissions processed.');
+    }
+  }
+}
+insertpermissions();
+//insertData();
 
-insertData();
 

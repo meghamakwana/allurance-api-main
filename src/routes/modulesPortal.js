@@ -192,19 +192,18 @@ router.post('/particularmodulecheck', async (req, res) => {
             query1 = `
                 SELECT m.*, p.role_id ,p.read_access ,p.add_access,p.update_access,p.delete_access
                 FROM ${tableName} m
-                JOIN ${tableName2} p ON m.index_of = p.module_id
-                WHERE p.role_id = ? AND m.index_of = ?`;
+                JOIN ${tableName2} p ON m.id = p.module_id
+                WHERE p.role_id = ? AND m.index_of = ? AND ( p.read_access = 1 OR p.add_access = 1 OR p.update_access = 1 OR p.delete_access = 1)`;
             queryParams.push(id);
         } else {
             query1 = `
                 SELECT m.*
                 FROM ${tableName} m
-                JOIN ${tableName2} p ON m.index_of = p.module_id
+                JOIN ${tableName2} p ON m.id = p.module_id
                 WHERE m.index_of = 0 AND p.role_id = ?`;
         }
 
         const [results] = await pool.query(query1, queryParams);
-
         if (results.length > 0) {
             // Check if the path field exists
             const hasPath = results.some(result => result.path);

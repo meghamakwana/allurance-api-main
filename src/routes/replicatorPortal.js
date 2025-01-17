@@ -103,7 +103,7 @@ router.post('/', async (req, res) => {
                 insertedRecordId,
                 1, // Assuming 1 represents a successful request status
                 null,
-                1, // Assuming 1 represents the ID of the user who created the record
+                requestData.created_by, // Assuming 1 represents the ID of the user who created the record
                 // Insert the generated batch number
             ]);
         }

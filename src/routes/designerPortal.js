@@ -581,7 +581,7 @@ router.put("/approved/:id", async (req, res) => {
       }
     }
     // REPLICATOR MODULE
-    const batch_number = generateRandomBatchNumber(8);
+    const batch_number = generateRandomBatchNumber();
     if (moduleId === ine_replicator_moduleID) {
       // Update query
       await pool.query(
@@ -611,7 +611,7 @@ router.put("/approved/:id", async (req, res) => {
       if (GetLatestRecord[0] && GetLatestRecord[0].quantity) {
         for (let i = 0; i < GetLatestRecord[0].quantity; i++) {
           let serial_number =
-            await generateUniqueLuhnSerialNumberFromDatabase();
+             await generateSerialNumbers();
           let l_serial_number = "";
           let r_serial_number = "";
           let pairValue = 'No'; // Default to 2 (No)
@@ -833,16 +833,33 @@ async function generateRandomNumberforSubcategory() {
 
   return subModelNumber;
 }
+//Old function
+// function generateRandomBatchNumber(length) {
+//   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+//   let batchNumber = "";
+//   for (let i = 0; i < length; i++) {
+//     batchNumber += characters.charAt(
+//       Math.floor(Math.random() * characters.length)
+//     );
+//   }
+//   return batchNumber;
+// }
+const generatedCodes = new Set();
+function generateRandomBatchNumber() {
 
-function generateRandomBatchNumber(length) {
-  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let batchNumber = "";
-  for (let i = 0; i < length; i++) {
-    batchNumber += characters.charAt(
-      Math.floor(Math.random() * characters.length)
-    );
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let code;
+
+  while (true) {
+      // Generate a random 8-character code
+      code = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+
+      // Check uniqueness
+      if (!generatedCodes.has(code)) {
+          generatedCodes.add(code); // Store the generated code
+          return code;
+      }
   }
-  return batchNumber;
 }
 
 async function fetchLuhnSequencesFromDatabase() {
@@ -851,6 +868,13 @@ async function fetchLuhnSequencesFromDatabase() {
     `SELECT replicator_luhn_sequence_left, replicator_luhn_sequence_right FROM ine_settings`
   );
   return settings[0]; // Assuming you only expect one row in the result
+}
+async function fetchSerialNumberCount() {
+  // Use your database query function here to fetch the serial number records from the serial_number table
+  const [count] = await pool.query(
+    `SELECT count(*) as count FROM serial_number`
+  );
+  return count[0]; // Assuming you only expect one row in the result
 }
 
 function calculateLuhnCheckDigit(number) {
@@ -870,6 +894,55 @@ function calculateLuhnCheckDigit(number) {
   }
   return (sum * 9) % 10;
 }
+
+async function generateSerialNumbers() {
+	/**
+ 	* Helper function to calculate the checksum using a weighted sum algorithm.
+ 	*/
+   let  startPart1 = await fetchSerialNumberCount();
+   startPart1 = 99999999-startPart1['count'];
+	function calculateChecksum(serial) {
+    	const weights = [1, 3];
+    	let checksum = 0;
+ 
+    	for (let i = 0; i < serial.length; i++) {
+        	const digit = parseInt(serial[i], 10);
+        	checksum += digit * weights[i % 2];
+    	}
+ 
+    	return checksum % 10; // Single-digit checksum
+	}
+ 
+	/**
+ 	* Helper function to generate a single serial number.
+ 	*/
+	function generateSerialNumber(part1, part2) {
+    	const formattedPart1 = String(part1).padStart(8, '0');
+    	const formattedPart2 = String(part2).padStart(3, '0');
+    	const combined = formattedPart1 + formattedPart2;
+    	const checksum = calculateChecksum(combined);
+ 
+    	return `${formattedPart1}${formattedPart2}${checksum}`;
+	}
+ 
+	/**
+ 	* Main logic to generate multiple serial numbers.
+ 	*/
+	let serialNumber = '';
+	let part1 = startPart1;
+	let part2 = 1;
+ 
+
+  serialNumber= generateSerialNumber(part1, part2);
+ 
+    	// Update Part 1 and Part 2
+    	part1 -= 1; // Decrement Part 1
+    	part2 = (part2 % 999) + 1; // Increment Part 2 and reset to 001 after 999
+	
+ 
+	return serialNumber;
+}
+ 
 
 // Function to generate a unique serial number using modified sequences from the database
 async function generateUniqueLuhnSerialNumberFromDatabase() {

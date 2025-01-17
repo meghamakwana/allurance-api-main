@@ -104,7 +104,7 @@ router.post('/', upload.any(), async (req, res) => {
 
 
 
-    const { first_name, last_name, email, password, referral_code: bodyReferralCode, state_id, district_id, pincode, address, govt_id_number, pan_number, phone, role_id } = req.body;
+    const { first_name, last_name, email, password, referral_code: bodyReferralCode, state_id, district_id, pincode, post_office_id , address, govt_id_number, pan_number, phone, role_id  } = req.body;
     //const role_id = 9;
 
     let govt_id_upload;
@@ -204,8 +204,8 @@ router.post('/', upload.any(), async (req, res) => {
     const insertedRecordId = insertResult.insertId;
 
     // User Details - Insertion
-    await pool.query(`INSERT INTO ${tableName2} (user_id, my_referral_code, country_id, state_id, district_id,pincode, address, pan_number, govt_id_number, govt_id_upload, pan_upload) VALUES (?,?,?,?,?,?,?, ?, ?, ?, ?)`, [
-      insertedRecordId, referralCode, country_id, state_id, district_id, pincode, address, pan_number, govt_id_number, gimg, pimg
+    await pool.query(`INSERT INTO ${tableName2} (user_id, my_referral_code, country_id, state_id, district_id,pincode,post_office_id, address, pan_number, govt_id_number, govt_id_upload, pan_upload) VALUES (?,?,?,?,?,?,?, ?, ?, ?, ?,?)`, [
+      insertedRecordId, referralCode, country_id, state_id, district_id, pincode, post_office_id, address, pan_number, govt_id_number, gimg, pimg
     ]);
 
 
@@ -250,12 +250,13 @@ router.get('/', async (req, res) => {
    
     const id = getQueryParamId(fullUrl);
     const baseQuery = `SELECT 
-          u.*, ir.name as rolename, ud.date_of_birth, ud.anniversary, ud.gender, ud.address, st.name as state, ud.state_id, sd.District as district, ud.district_id, ud.pincode, ud.govt_id_number, ud.govt_id_upload, ud.pan_number, ud.pan_upload, ud.my_referral_code 
+          u.*, ir.name as rolename, ud.date_of_birth, ud.anniversary, ud.gender, ud.address, st.name as state, ud.state_id, sd.name as district, ud.district_id, ud.pincode,ud.post_office_id,pt.name as post_office_name, ud.govt_id_number, ud.govt_id_upload, ud.pan_number, ud.pan_upload, ud.my_referral_code 
           FROM \`${tableName}\` as u 
             LEFT JOIN \`${tableName2}\` as ud on ud.user_id = u.id 
             LEFT JOIN \`${tableName3}\` as ir on ir.id = u.role_id 
             LEFT JOIN \`${TABLE.STATE_TABLE}\` st ON st.id = ud.state_id
-            LEFT JOIN \`${TABLE.STATE_DISTRICT}\` sd ON sd.id = ud.district_id
+            LEFT JOIN \`${TABLE.DISTRICT_TABLE}\` sd ON sd.id = ud.district_id
+            LEFT JOIN \`${TABLE.POSTOFFICE_TABLE}\` pt ON pt.id = ud.post_office_id
             WHERE u.status = 1`;
 
     if (id) {
@@ -369,7 +370,7 @@ router.put('/', upload.any(), async (req, res) => {
 
     const [existingRecord2] = await getRecordDetailById(id, tableName2, 'user_id');
 
-    const { role_id, first_name, last_name, email, phone, password, gender, govt_id_number, pan_number, date_of_birth, anniversary, status, state_id, district_id, address, pincode } = req.body;
+    const { role_id, first_name, last_name, email, phone, password, gender, govt_id_number, pan_number, date_of_birth, anniversary, status, state_id, district_id, address, pincode,post_office_id } = req.body;
 
     // Validate request data
     if (!first_name || !last_name || !email || !phone) {
@@ -490,17 +491,18 @@ router.put('/', upload.any(), async (req, res) => {
 
     await pool.query(updateQuery, queryParams);
 
-    await pool.query(`UPDATE ${tableName2} SET date_of_birth = ?, anniversary = ?, gender = ?, govt_id_number = ?, pan_number = ?, govt_id_upload = ?, pan_upload = ?, state_id = ?, district_id = ?, country_id = ?, address = ?, pincode = ? WHERE user_id = ?`, [date_of_birth, anniversary, gender, govt_id_number, pan_number, gimg, pimg, state_id, district_id, country_id, address, pincode, id]);
+    await pool.query(`UPDATE ${tableName2} SET date_of_birth = ?, anniversary = ?, gender = ?, govt_id_number = ?, pan_number = ?, govt_id_upload = ?, pan_upload = ?, state_id = ?, district_id = ?, country_id = ?, address = ?, pincode = ? , post_office_id = ? WHERE user_id = ?`, [date_of_birth, anniversary, gender, govt_id_number, pan_number, gimg, pimg, state_id, district_id, country_id, address, pincode,post_office_id, id]);
 
     // const query1 = `SELECT u.*, ir.name as rolename, ud.date_of_birth, ud.anniversary, ud.gender, ud.address, ud.state, ud.district, ud.pincode, ud.govt_id_number, ud.govt_id_upload, ud.pan_number, ud.pan_upload, ud.my_referral_code FROM \`${tableName}\` as u LEFT JOIN \`${tableName2}\` as ud on ud.user_id = u.id LEFT JOIN \`${tableName3}\` as ir on ir.id = u.role_id where u.status = 1 AND u.id = ? ORDER BY u.id DESC`;
 
     const query1 = `SELECT 
-          u.*, ir.name as rolename, ud.date_of_birth, ud.anniversary, ud.gender, ud.address, st.name as state, ud.state_id, sd.District as district, ud.district_id, ud.pincode, ud.govt_id_number, ud.govt_id_upload, ud.pan_number, ud.pan_upload, ud.my_referral_code 
+          u.*, ir.name as rolename, ud.date_of_birth, ud.anniversary, ud.gender, ud.address, st.name as state, ud.state_id, sd.name as district, ud.district_id, ud.pincode,ud.post_office_id,pt.name as post_office_name, ud.govt_id_number, ud.govt_id_upload, ud.pan_number, ud.pan_upload, ud.my_referral_code 
           FROM \`${tableName}\` as u 
             LEFT JOIN \`${tableName2}\` as ud on ud.user_id = u.id 
             LEFT JOIN \`${tableName3}\` as ir on ir.id = u.role_id 
             LEFT JOIN \`${TABLE.STATE_TABLE}\` st ON st.id = ud.state_id
-            LEFT JOIN \`${TABLE.STATE_DISTRICT}\` sd ON sd.id = ud.district_id
+            LEFT JOIN \`${TABLE.DISTRICT_TABLE}\` sd ON sd.id = ud.district_id
+            LEFT JOIN \`${TABLE.POSTOFFICE_TABLE}\` pt ON pt.id = ud.post_office_id
             WHERE u.status = 1 AND u.id = ? ORDER BY u.id DESC`;
     const [updatedRecord] = await pool.query(query1, [id]);
 

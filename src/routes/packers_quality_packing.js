@@ -44,25 +44,26 @@ router.post('/update_quality_serial_number', async (req, res) => {
         let results = [];
         let notFoundSerialNumbers = [];
 
-        const request_id = qualityCheckedNumber();
+        //const request_id =generateLuhnCardNumbers("757500000000000" ,1);
         let packers_quality_id = '';
 
-        async function insertQualityPacking() {
+        async function insertQualityPacking(request_id) {
             const [query3] = await pool.query(`INSERT INTO ${tableName6} (request_id) VALUES (?)`, [request_id]);
             return query3.insertId;
         }
-
+        const quality_checked_numbers = generateLuhnCardNumbers("757500000000000" ,serial_numbers.length);
         var replicatorid = '';
+        var i=0;
         for (const serial_number of serial_numbers) {
-            const quality_checked_number = qualityCheckedNumber();
+            //const quality_checked_number = generateLuhnCardNumbers("757500000000000" ,1);
             const [query1] = await pool.query(`SELECT * FROM ${tableName} WHERE serial_number = ? AND is_quality_checked = 'No'`, [serial_number]);
             if (query1.length > 0) {
 
                 if (!packers_quality_id) {
-                    packers_quality_id = await insertQualityPacking();
+                    packers_quality_id = await insertQualityPacking(quality_checked_numbers[i]);
                 }
 
-                await pool.query(`UPDATE ${tableName} SET is_quality_checked = 'Yes', packers_quality_id = ?, quality_checked_number = ?, quality_checked_updated_at = NOW() WHERE serial_number = ?`, [packers_quality_id, quality_checked_number, serial_number]);
+                await pool.query(`UPDATE ${tableName} SET is_quality_checked = 'Yes', packers_quality_id = ?, quality_checked_number = ?, quality_checked_updated_at = NOW() WHERE serial_number = ?`, [packers_quality_id, quality_checked_numbers[i], serial_number]);
 
                 const [query2] = await pool.query(`SELECT psn.serial_number, psn.serial_number_left, psn.serial_number_right, psn.quality_checked_number, ir.batch_number, ir.designer_id AS model_number, ibm.name AS metal_name, ic.name AS category_name FROM ${tableName} AS psn
                     LEFT JOIN ${tableName2} AS ir ON ir.id = psn.replicator_id
@@ -77,6 +78,7 @@ router.post('/update_quality_serial_number', async (req, res) => {
             } else {
                 notFoundSerialNumbers.push(serial_number);
             }
+            i++;
         }
 
         // CALL UpdateQualityCheck('replicatorid');
@@ -153,21 +155,22 @@ router.post('/update_packing_serial_number', async (req, res) => {
         let results = [];
         let notFoundSerialNumbers = [];
 
-        const request_id = qualityCheckedNumber();
+        
         let packers_packing_id = '';
 
-        async function insertPackersPacking() {
+        async function insertPackersPacking(request_id) {
             const [query3] = await pool.query(`INSERT INTO ${tableName7} (request_id) VALUES (?)`, [request_id]);
             return query3.insertId;
         }
-
+        const quality_checked_numbers = generateLuhnCardNumbers("757500000000000" ,serial_numbers.length);
         var replicatorid = '';
+        var i = 0;
         for (const serial_number of serial_numbers) {
             const [query1] = await pool.query(`SELECT * FROM ${tableName} WHERE serial_number = ? and is_quality_checked = 'Yes' and is_packed = 'No'`, [serial_number]);
             if (query1.length > 0) {
 
                 if (!packers_packing_id) {
-                    packers_packing_id = await insertPackersPacking();
+                    packers_packing_id = await insertPackersPacking(quality_checked_numbers[i]);
                 }
 
                 await pool.query(`UPDATE ${tableName} SET is_packed = 'Yes', packers_packing_id = ?, packing_checked_updated_at = now() WHERE serial_number = ?`, [packers_packing_id, serial_number]);
@@ -185,6 +188,7 @@ router.post('/update_packing_serial_number', async (req, res) => {
             } else {
                 results.push({ query: [], serial_number, status: 'Not Found or Already Packed' });
             }
+            i++;
         }
 
         // CALL UpdatePackingCheck('replicatorid');
@@ -258,5 +262,50 @@ const qualityCheckedNumber = () => {
     }
     return result;
 };
+function generateLuhnCardNumbers(baseNumber, count) {
+	// Helper function to generate the Luhn checksum for a 15-digit number
+	function generateLuhnChecksum(code15) {
+    	if (code15.length !== 15 || !/^\d+$/.test(code15)) {
+        	throw new Error("Input must be a 15-digit numeric string.");
+    	}
+ 
+    	const digits = code15.split('').map(Number);
+    	let sum = 0;
+ 
+    	// Apply Luhn's algorithm (double every second digit from the right)
+    	for (let i = digits.length - 1; i >= 0; i--) {
+        	let digit = digits[i];
+        	if ((digits.length - i) % 2 === 0) {
+            	digit *= 2;
+            	if (digit > 9) {
+                	digit -= 9;
+            	}
+        	}
+        	sum += digit;
+    	}
+ 
+    	// Calculate the checksum (modulus 10)
+    	const checksum = (10 - (sum % 10)) % 10;
+    	return checksum;
+	}
+ 
+	// Ensure the base number is a valid 15-digit string
+	if (baseNumber.length !== 15 || !/^\d+$/.test(baseNumber)) {
+    	throw new Error("Base number must be a 15-digit numeric string.");
+	}
+ 
+	const cardNumbers = [];
+	let currentNumber = BigInt(baseNumber); // Use BigInt for handling large numbers
+ 
+	// Generate card numbers
+	for (let i = 0; i < count; i++) {
+    	const code15 = currentNumber.toString().padStart(15, '0'); // Ensure it's 15 digits
+    	const checksum = generateLuhnChecksum(code15);
+    	cardNumbers.push(code15 + checksum); // Append checksum to create a 16-digit card number
+    	currentNumber += 1n; // Increment the base number
+	}
+ 
+	return cardNumbers;
+}
 
 module.exports = router;

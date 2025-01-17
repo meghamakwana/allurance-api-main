@@ -162,7 +162,7 @@ router.get('/permission/:id?', async (req, res) => {
             if (results.length > 0) {
                 return sendResponse(res, { data: results, message: ManageResponseStatus('fetched'), status: true, count: results.length }, 200);
             }
-            return sendResponse({ error: ManageResponseStatus('notFound'), status: false }, 404);
+            return sendResponse(res,{ error: ManageResponseStatus('notFound'), status: false }, 404);
         }
 
         const query2 = `${baseQuery} ORDER BY ip.id ASC`;
