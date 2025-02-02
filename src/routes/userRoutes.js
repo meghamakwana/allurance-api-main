@@ -104,8 +104,13 @@ router.post('/', upload.any(), async (req, res) => {
 
 
 
-    const { first_name, last_name, email, password, referral_code: bodyReferralCode, state_id, district_id, pincode, post_office_id , address, govt_id_number, pan_number, phone, role_id  } = req.body;
+    const { first_name, last_name, email, referral_code: bodyReferralCode, state_id, district_id, pincode, post_office_id , address, govt_id_number, pan_number, phone, role_id  } = req.body;
     //const role_id = 9;
+
+    // Validate request data
+    if (!first_name || !last_name || !email || !phone) {
+      return sendResponse(res, { error: 'First Name, Last Name, Email and Phome number field is required', status: false }, 400);
+    }
 
     let govt_id_upload;
     let pan_upload;
@@ -114,6 +119,19 @@ router.post('/', upload.any(), async (req, res) => {
     let pimg;
     let aimg;
 
+    // Email Validation
+    if (email) {
+      const emailExists = await checkEmailExistOrNot(tableName, email);
+      if (emailExists) {
+        return sendResponse(res, { error: 'Email already exists', status: false }, 409);
+      }
+    }
+    if (phone) {
+      const phoneExists = await checkPhoneExistOrNot(tableName, phone);
+      if (phoneExists) {
+        return sendResponse(res, { error: 'Phone number already exists', status: false }, 409);
+      }
+    }
 
     if (req.files && req.files.length > 0) {
       req.files.forEach((file) => {
@@ -142,23 +160,20 @@ router.post('/', upload.any(), async (req, res) => {
     if (avatar) {
       aimg = await uploadToAzureBlob(avatar);
     }
-
-
     let country_id;
-    await getCountryByStateId(state_id).then((obj) => {
-      country_id = obj.country_id;
-    }).catch((error) => {
-      console.log('call error');
-    })
+    if(state_id){
+     
+      await getCountryByStateId(state_id).then((obj) => {
+        country_id = obj.country_id;
+      }).catch((error) => {
+        console.log('call error');
+      })
+    }
+  
 
 
     if (bodyReferralCode) {
       referral_code = bodyReferralCode;
-    }
-
-    // Validate request data
-    if (!first_name || !last_name || !email || !password) {
-      return sendResponse(res, { error: 'First Name, Last Name, Email and Password field is required', status: false }, 400);
     }
 
 
@@ -170,26 +185,16 @@ router.post('/', upload.any(), async (req, res) => {
     const formattedNumber = String(result2[0]?.count + 1).padStart(4, '0');
     const newPrefix = `${rolePrefixName}A${formattedNumber}`;
 
-    // Email Validation
-    if (email) {
-      const emailExists = await checkEmailExistOrNot(tableName, email);
-      if (emailExists) {
-        return sendResponse(res, { error: 'Email already exists', status: false }, 409);
-      }
-    }
+    
+    
 
-
-
-
-
-
-    // Password Validation
-    if (!validatePassword(password)) {
-      return sendResponse(res, { error: 'Password must be at least 9 characters long and contain at least one uppercase letter, one lowercase letter and one special character.', status: false }, 400);
-    }
-
+    // // Password Validation
+    // if (!validatePassword(password)) {
+    //   return sendResponse(res, { error: 'Password must be at least 9 characters long and contain at least one uppercase letter, one lowercase letter and one special character.', status: false }, 400);
+    // }
+    
     // Hash the password
-    const hashedPassword = password ? await bcrypt.hash(password, 10) : undefined;
+    const hashedPassword = newPrefix ? await bcrypt.hash(newPrefix, 10) : undefined;
 
     // Generate unique referral code
     const uniqueCode = uniqueId.slice(0, 8); // Generate a short UUID
@@ -851,5 +856,74 @@ router.get('/verify-token', (req, res) => {
   }
 });
 
+
+router.post('/sendOtp', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) {
+      return sendResponse(res, { error: 'Phone number field is required', status: false }, 400);
+    }
+
+    // Check if email exists
+    const [existingRecord] = await pool.query(`SELECT * FROM ${tableName} WHERE phone = ?`, [phone]);
+    if (existingRecord.length === 0) {
+      return sendResponse(res, { error: 'Account not found for this phone number', status: false }, 404);
+    }
+
+    const otp = generateOTP(6);
+    await pool.query(`UPDATE ${tableName} SET login_otp = ?, updated_at = NOW() WHERE phone = ?`, [otp, phone]);
+    const [updatedRecord] = await pool.query(`SELECT * FROM ${tableName} WHERE phone = ?`, [phone]);
+    await activityLog(ine_users_ModuleID, existingRecord, updatedRecord, 2, 0);
+
+    // await sendOTPEmail(email, otp);
+    return sendResponse(res, { message: 'OTP has been sent to your mobile', status: true ,otp:otp}, 200);
+
+  } catch (error) {
+    return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
+  }
+});
+router.post('/validateLoginOtp', async (req, res) => {
+  try {
+    const { phone, otp } = req.body;
+
+    var otpconvert = parseInt(otp, 10);
+
+    if (!phone || !otpconvert) {
+      return sendResponse(res, { error: 'Mobile and OTP fields are required', status: false }, 400);
+    }
+
+    const [existingRecordResults] = await pool.query(`SELECT * FROM ${tableName} WHERE phone = ?`, [phone]);
+
+    if (existingRecordResults.length === 0) {
+      return sendResponse(res, { error: 'Acount not found', status: false }, 404);
+    }
+
+    const existingRecord = existingRecordResults[0];
+
+    if (existingRecord.login_otp !== otpconvert) {
+      return sendResponse(res, { error: 'Sorry, OTP is Invalid', status: false }, 400);
+    }
+
+    await pool.query(`UPDATE ${tableName} SET login_otp = NULL, updated_at = NOW() WHERE phone = ?`, [phone]);
+
+    // Retrieve the updated record
+    const [results] = await pool.query(`SELECT * FROM ${tableName} WHERE phone = ?`, [phone]);
+
+    const user = {
+      id: results[0].id,
+      first_name: results[0].first_name,
+      last_name: results[0].last_name,
+      prefix_id: results[0].prefix_id,
+      phone: results[0].phone,
+      email: results[0].email,
+    };
+    const token = jwt.sign({ data: user }, API_SECRET_KEY, { expiresIn: API_TOKEN_EXPIRESIN });
+
+    return await sendResponse(res, { message: 'Logged In Successfuly', accessToken: token, status: true }, 200);
+
+  } catch (error) {
+    return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
+  }
+});
 
 module.exports = router;
