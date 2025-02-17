@@ -12,11 +12,13 @@ const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { authenticateToken } = require('../utils/authMiddleware');
 const uniqueId = uuidv4();
-
-const API_SECRET_KEY = process.env.API_SECRET_KEY;
-const API_TOKEN_EXPIRESIN = process.env.API_TOKEN_EXPIRESIN;
+const API_SECRET_KEY = "secretkey3428943hrw";
+const API_TOKEN_EXPIRESIN = "1h";
+// const API_SECRET_KEY = process.env.API_SECRET_KEY;
+// const API_TOKEN_EXPIRESIN = process.env.API_TOKEN_EXPIRESIN;
 
 const tableName = TABLE.USERS;
+const tempTableName = TABLE.TEMP_USERS;
 const ine_users_ModuleID = TABLE.USERS_MODULE_ID;
 const tableName2 = TABLE.USERS_DETAILS;
 const tableName3 = TABLE.ROLE;
@@ -283,6 +285,7 @@ router.get('/', async (req, res) => {
 
     return sendResponse(res, { error: ManageResponseStatus('notFound'), status: false }, 404);
   } catch (error) {
+    console.log(error)
     return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
   }
 });
@@ -305,6 +308,7 @@ router.put('/frontendprofile', upload.any(), async (req, res) => {
     }
 
     const { first_name, last_name, email, phone, gender, date_of_birth, anniversary } = req.body;
+    // console.log(req.body)
 
     // Validate request data
     if (!first_name || !last_name || !email || !phone) {
@@ -343,10 +347,10 @@ router.put('/frontendprofile', upload.any(), async (req, res) => {
     queryParams.push(id);
 
     await pool.query(updateQuery, queryParams);
-
+    // console.log(date_of_birth, anniversary)
     await pool.query(`UPDATE ${tableName2} SET date_of_birth = ?, anniversary = ?, gender = ? WHERE user_id = ?`, [date_of_birth, anniversary, gender, id]);
-
     const [updatedRecord] = await getRecordById(id, tableName, 'id');
+    console.log(updatedRecord)
 
     return sendResponse(res, { data: updatedRecord, message: ManageResponseStatus('updated'), status: true }, 200);
 
@@ -579,6 +583,88 @@ router.put('/forgotpassword', async (req, res) => {
     return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
   }
 });
+
+//Send OTP to Number
+router.post('/sendotp', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) {
+      return sendResponse(res, { error: 'Phone field is required', status: false }, 400);
+    }
+
+    // Check if phone exists
+    const [existingRecord] = await pool.query(`SELECT * FROM ${tableName} WHERE phone = ?`, [phone]);
+    if (existingRecord.length === 0 && !req.body.first_name) {
+      return sendResponse(res, { error: 'Phone not found', status: false }, 404);
+    }
+
+    const otp = generateOTP(6);
+
+    if(existingRecord.length === 0){
+      const [existsInTemp] = await pool.query(`SELECT * FROM ${tempTableName} WHERE phone = ?`, [phone]);
+      if (existsInTemp.length === 0) {
+        const [insertedRecord] = await pool.query(`INSERT INTO ${tempTableName} (phone, otp) VALUES (?, ?)`, [phone, otp]);
+      }else{
+        await pool.query(`UPDATE ${tempTableName} SET otp = ?, updated_at = NOW() WHERE phone = ?`, [otp, phone]);
+      }
+      return sendResponse(res, { message: 'OTP has been sent to your phone', otp:otp, status: true }, 200);
+    }
+
+    await pool.query(`UPDATE ${tableName} SET otp = ?, updated_at = NOW() WHERE phone = ?`, [otp, phone]);
+    const [updatedRecord] = await pool.query(`SELECT * FROM ${tableName} WHERE phone = ?`, [phone]);
+    await activityLog(ine_users_ModuleID, existingRecord, updatedRecord, 2, 0);
+
+    // await sendOTPEmail(email, otp);
+    return sendResponse(res, { message: 'OTP has been sent to your phone',otp:otp, status: true }, 200);
+
+  } catch (error) {
+    return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
+  }
+});
+
+router.post('/verifyOtpAndSignup', async (req, res) => {
+  try {
+    const { phone, otp, first_name, last_name} = req.body;
+    // console.log(phone,"\n",otp,"\n",first_name,"\n",last_name);
+    if (!phone || !otp) {
+      return sendResponse(res, { error: 'Phone and OTP fields are required', status: false }, 400);
+    }
+
+    const existingRecord = await pool.query(`SELECT * FROM ${tableName} WHERE phone = ?`, [phone]);
+    const existInTemp = await pool.query(`SELECT * FROM ${tempTableName} WHERE phone = ?`, [phone]);
+    // console.log(typeof existingRecord[0].length)
+    if (existingRecord[0].length === 0) {
+      console.log("not existing")
+      if (existInTemp[0].length === 0) {
+        return sendResponse(res, { error: 'Phone not found', status: false }, 404);
+      }
+      else{
+        const existingRecord = await pool.query(`SELECT * FROM ${tempTableName} WHERE phone = ? AND otp = ?`, [phone, otp]);
+        if (existingRecord[0].length === 0) {
+          return sendResponse(res, { error: 'Sorry, OTP is Invalid', status: false }, 400);
+        }
+        const [insertedRecord] = await pool.query(`INSERT INTO ${tableName} (first_name, last_name, phone) VALUES (?,?,?)`, [first_name, last_name, phone]);
+        await pool.query(`INSERT INTO ${tableName2} (user_id) VALUES (?)`, [insertedRecord.insertId]);
+        const token = jwt.sign({ data: insertedRecord[0] }, API_SECRET_KEY, { expiresIn: API_TOKEN_EXPIRESIN });
+
+        await pool.query(`UPDATE ${tempTableName} SET otp = NULL, updated_at = NOW() WHERE phone = ?`, [phone]);
+        return sendResponse(res, { message: 'OTP verified successfully',accessToken:token, status: true }, 200);
+      }
+    }else{
+      console.log("existing")
+      const existingRecord = await pool.query(`SELECT * FROM ${tableName} WHERE phone = ? AND otp = ?`, [phone, otp]);
+      if (existingRecord[0].length === 0) {
+        return sendResponse(res, { error: 'Sorry, OTP is Invalid', status: false }, 400);
+      }
+      await pool.query(`UPDATE ${tableName} SET otp = NULL, updated_at = NOW() WHERE phone = ?`, [phone]);
+      const token = jwt.sign({ data: existingRecord[0] }, API_SECRET_KEY, { expiresIn: API_TOKEN_EXPIRESIN });
+      return sendResponse(res, { message: 'OTP verified successfully',accessToken:token, status: true }, 200);
+    }
+  }
+  catch (error) {
+    return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
+  }
+})
 
 // OTP
 router.post('/otp', async (req, res) => {

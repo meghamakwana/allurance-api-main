@@ -64,10 +64,23 @@ router.post('/', async (req, res) => {
         ]);
 
         const insertedRecordId = insertResult.insertId;
-
+        let dob, anni;
+        if(date_of_birth) {
+            let year = date_of_birth.split('-')[0];
+            let month = date_of_birth.split('-')[1];
+            let day = date_of_birth.split('-')[2].slice(0, 2);
+            dob = `${year}-${month}-${day}`;
+        }
+        if(anniversary) {
+            let year = anniversary.split('-')[0];
+            let month = anniversary.split('-')[1];
+            let day = anniversary.split('-')[2].slice(0, 2);
+            anni = `${year}-${month}-${day}`;
+        }
+        console.log(dob, anni);
         // User Details - Insertion
         await pool.query(`INSERT INTO ${tableName2} (user_id, address, state_id, district_id, pincode, date_of_birth, anniversary) VALUES (?,?,?,?,?,?,?)`, [
-            insertedRecordId, address, state_id, district_id, pincode, date_of_birth, anniversary,
+            insertedRecordId, address, state_id, district_id, pincode, dob, anni,
         ]);
 
         const [insertedRecord] = await getRecordById(insertedRecordId, tableName, 'id'); // Retrieve the inserted record

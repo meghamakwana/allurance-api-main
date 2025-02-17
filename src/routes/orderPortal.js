@@ -506,7 +506,7 @@ router.post('/placeorder', async (req, res) => {
         }
 
         // Insertion into orders table
-        const [insertOrderResult] = await pool.query(`INSERT INTO ${tableName} (base_amount,delivery_charge,total_amount,assisted_by,tax_amount,payment_by_customer, channel_mode, notes, total_items, customer_id, address_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)`, [
+        const [insertOrderResult] = await pool.query(`INSERT INTO ${tableName} (base_amount,delivery_charge,total_amount,assisted_by,tax_amount,payment_by_customer, channel_mode, notes, total_items, customer_id, address_id, created_by, order_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
             requestData?.discountedAmount,
             requestData?.delivery_charge || 0,
             requestData?.finalamount,
@@ -518,7 +518,10 @@ router.post('/placeorder', async (req, res) => {
             requestData?.notes || '',
             requestData?.cartproducts?.length,
             userID,
-            requestData?.addressId,
+            // requestData?.addressId,
+            0,
+            288,
+            1,
         ]);
 
         const insertedOrderId = insertOrderResult.insertId;
@@ -531,8 +534,8 @@ router.post('/placeorder', async (req, res) => {
             let insertOrderResult2;
 
             // Order Products
-            [insertOrderResult2] = await pool.query(`INSERT INTO ${tablename9} (order_id, invoice_id, product_id, product_model_number,serial_number, quantity, price) VALUES (?, ?, ?, ?,?, ?,?)`, [
-                insertedOrderId, invoiceNumber, product.id, product.model_number || product.irdesignerid, product.serial_number || null, product.quantity, product.price]);
+            [insertOrderResult2] = await pool.query(`INSERT INTO ${tablename9} (order_id, invoice_id, product_id, product_model_number,serial_number, quantity, price, created_by) VALUES (?, ?, ?, ?,?, ?,?, ?)`, [
+                insertedOrderId, invoiceNumber, product.id, product.model_number || product.irdesignerid, product.serial_number || null, product.quantity, product.price, 288]);
 
             // Update Cart and Checkout
             if (mockid) {
@@ -620,6 +623,7 @@ router.post('/placeorder', async (req, res) => {
         return sendResponse(res, { message: "Order has been successfully placed", ...(token ? { accessToken: token } : {}), status: true }, 201);
 
     } catch (error) {
+        console.log(error)
         return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
     }
 

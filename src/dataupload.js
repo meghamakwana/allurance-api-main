@@ -4,15 +4,22 @@ const csv = require('csv-parser');
 require('dotenv').config();
 const pool = require('./utils/db');
 // Database connection details
+// const dbConfig = {
+//     host: process.env.DB_HOST,
+//     user: process.env.DB_USERNAME,
+//     password: process.env.DB_PASSWORD,
+//     database: process.env.DB_NAME,
+// };
+
 const dbConfig = {
-    host: process.env.DB_HOST,
-    user: process.env.DB_USERNAME,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
+  host: 'localhost',
+  user: 'root',
+  password: 'root',
+  database: 'allurance',
 };
 
-
 async function insertData() {
+  console.log("first")
   const connection = await mysql.createConnection(dbConfig);
   function toTitleCase(str) {
     return str
@@ -116,7 +123,7 @@ async function insertpermissions(){
     }
   }
 }
-insertpermissions();
-//insertData();
+insertData();
+// insertpermissions();
 
 

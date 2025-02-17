@@ -37,6 +37,7 @@ router.get('/', async (req, res) => {
                                im.name as inner_material_name,
                                iff.id as flower_id,
                                iff.name as flower_name,
+                               sn.serial_number as serial_number,
                                cs.id as color_id,
                                cs.name as color_name
                         FROM ${tableName} p
@@ -48,6 +49,7 @@ router.get('/', async (req, res) => {
                         LEFT JOIN ine_bezel_color bc ON d.bezel_color_id = bc.id
                         LEFT JOIN ine_inner_material im ON d.inner_material_id = im.id
                         LEFT JOIN ine_flower iff ON d.flower_id = iff.id
+                        LEFT JOIN ine_serial_number sn ON d.serial_number_id = sn.id
                         LEFT JOIN ine_color_shade cs ON d.color_id = cs.id`;
 
         const queryParams = [];
