@@ -4,19 +4,13 @@ const csv = require('csv-parser');
 require('dotenv').config();
 const pool = require('./utils/db');
 // Database connection details
-// const dbConfig = {
-//     host: process.env.DB_HOST,
-//     user: process.env.DB_USERNAME,
-//     password: process.env.DB_PASSWORD,
-//     database: process.env.DB_NAME,
-// };
-
 const dbConfig = {
-  host: 'localhost',
-  user: 'root',
-  password: 'root',
-  database: 'allurance',
+    host: process.env.DB_HOST,
+    user: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
 };
+
 
 async function insertData() {
   console.log("first")

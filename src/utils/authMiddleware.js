@@ -8,8 +8,7 @@ function authenticateToken(req) {
         }
         const token = authHeader.split(' ')[1];
         try {
-            // const decoded = jwt.verify(token, process.env.API_SECRET_KEY);
-            const decoded = jwt.verify(token, "secretkey3428943hrw");
+            const decoded = jwt.verify(token, process.env.API_SECRET_KEY);
             req.userId = decoded.data.id; // Extract user ID from token payload
             resolve(req);
         } catch (error) {

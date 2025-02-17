@@ -67,7 +67,6 @@ router.get('/', async (req, res) => {
 
         const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
         const id = getQueryParamId(fullUrl);
-        // console.log('idid',id);
         if (id) {
             const results = await getRecordById(id, tableName, 'id');
             if (results.length > 0) {

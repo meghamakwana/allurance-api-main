@@ -12,10 +12,8 @@ const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { authenticateToken } = require('../utils/authMiddleware');
 const uniqueId = uuidv4();
-const API_SECRET_KEY = "secretkey3428943hrw";
-const API_TOKEN_EXPIRESIN = "1h";
-// const API_SECRET_KEY = process.env.API_SECRET_KEY;
-// const API_TOKEN_EXPIRESIN = process.env.API_TOKEN_EXPIRESIN;
+const API_SECRET_KEY = process.env.API_SECRET_KEY;
+const API_TOKEN_EXPIRESIN = process.env.API_TOKEN_EXPIRESIN;
 
 const tableName = TABLE.USERS;
 const tempTableName = TABLE.TEMP_USERS;
