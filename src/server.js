@@ -82,7 +82,7 @@ const bodyParser = require('body-parser');
 const port = process.env.PORT || 3000;
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
-const allowedOrigins = ['http://localhost:3000', 'http://localhost:3032', 'http://98.70.76.169:3033', 'http://localhost:3033'];
+const allowedOrigins = ['http://localhost:3000', 'http://localhost:3032', 'http://98.70.76.169:3033', 'http://localhost:3306', 'http://localhost:3033'];
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -186,6 +186,9 @@ app.use('/api/managerequest', managerequestPortal);
 
 
 
+// app.listen(port, () => {
+//   console.log(`Server running on ${process.env.NEXT_PUBLIC_API_URL}`);
+// });
 app.listen(port, () => {
-  console.log(`Server running on ${process.env.NEXT_PUBLIC_API_URL}`);
+  console.log(`Server running on ${port}`);
 });

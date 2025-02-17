@@ -16,6 +16,7 @@ const TABLES = {
   
   // User Module
   USERS: 'ine_users',
+  TEMP_USERS: 'ine_temp_user',
   USERS_MODULE_ID: 13,
   USERS_DETAILS: 'ine_users_details',
   CUSTOMER_MODULE_ID: 14,
@@ -68,6 +69,7 @@ const TABLES = {
   // My Address Module
   MY_ADDRESS: 'ine_my_address',
   MY_ADDRESS_MODULE_ID: 0,
+  PINCODES: 'ine_state_district',
 
   // My Wishlist Module
   MY_WISHLIST: 'ine_wishlist',

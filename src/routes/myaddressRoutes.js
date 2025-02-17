@@ -7,8 +7,22 @@ const router = express.Router();
 const { authenticateToken } = require('../utils/authMiddleware');
 
 const tableName = TABLE.MY_ADDRESS;
+const pincodeTable = TABLE.PINCODES;
 const ine_my_address_ModuleID = TABLE.MY_ADDRESS_MODULE_ID;
 
+//GetByPIN Code
+router.post('/getByPinCode', async (req, res) => {
+    try {
+        const { pincode } = req.body;
+        if (!pincode) {
+            return sendResponse(res, { error: 'Pincode is required', status: false }, 400);
+        }
+        const [results] = await pool.query(`SELECT * FROM ${pincodeTable} WHERE pincode = ?`, [pincode]);
+        return sendResponse(res, { data: results, message: ManageResponseStatus('fetched'), status: true, count: results.length }, 200);
+    } catch (error) {
+        return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
+    }
+})
 // Add
 router.post('/', async (req, res) => {
     try {

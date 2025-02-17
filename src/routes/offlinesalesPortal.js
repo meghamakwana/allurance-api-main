@@ -737,6 +737,7 @@ router.get('/invoice/searchbyserialnumber/:id', async (req, res) => {
         }
         return sendResponse(res, { error: ManageResponseStatus('notFound'), status: false }, 404);
     } catch (error) {
+        console.log(error)
         return sendResponse(res, { error: `Error occurred: ${error.message}`, status: false }, 500);
     }
 })
