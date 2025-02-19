@@ -60,7 +60,8 @@ router.post('/update_quality_serial_number', async (req, res) => {
             if (query1.length > 0) {
 
                 if (!packers_quality_id) {
-                    packers_quality_id = await insertQualityPacking(quality_checked_numbers[i]);
+                    const random = Math.floor(Math.random() * 1000000);
+                    packers_quality_id = await insertQualityPacking(random);
                 }
 
                 await pool.query(`UPDATE ${tableName} SET is_quality_checked = 'Yes', packers_quality_id = ?, quality_checked_number = ?, quality_checked_updated_at = NOW() WHERE serial_number = ?`, [packers_quality_id, quality_checked_numbers[i], serial_number]);
@@ -170,20 +171,21 @@ router.post('/update_packing_serial_number', async (req, res) => {
             if (query1.length > 0) {
 
                 if (!packers_packing_id) {
-                    packers_packing_id = await insertPackersPacking(quality_checked_numbers[i]);
+                    const random = Math.floor(Math.random() * 1000000);
+                    packers_packing_id = await insertPackersPacking(random);
                 }
 
                 await pool.query(`UPDATE ${tableName} SET is_packed = 'Yes', packers_packing_id = ?, packing_checked_updated_at = now() WHERE serial_number = ?`, [packers_packing_id, serial_number]);
 
-                const [query2] = await pool.query(`SELECT psn.serial_number, psn.serial_number_left, psn.serial_number_right, psn.quality_checked_number, ir.batch_number, ir.designer_id as model_number, ibm.name as  metal_name, ic.name as category_name FROM ${tableName} as psn
+                const [query2] = await pool.query(`SELECT psn.serial_number, pp.request_id as box_id, psn.serial_number_left, psn.serial_number_right, psn.quality_checked_number, ir.batch_number, ir.designer_id as model_number, ibm.name as  metal_name, ic.name as category_name FROM ${tableName} as psn
                     LEFT JOIN ${tableName2} as ir on ir.id = psn.replicator_id
                     LEFT JOIN ${tableName3} as id on id.model_number = ir.designer_id
                     LEFT JOIN ${tableName4} as ibm on ibm.id = id.bezel_material_id
                     LEFT JOIN ${tableName5} as ic on ic.id = id.category_id
+                    LEFT JOIN ${tableName7} as pp on pp.id = psn.packers_packing_id
                     WHERE psn.serial_number = ?`, [serial_number]);
 
                 results = results.concat(query2);
-
                 replicatorid = query1[0]['replicator_id'];                
             } else {
                 results.push({ query: [], serial_number, status: 'Not Found or Already Packed' });
