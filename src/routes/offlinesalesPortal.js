@@ -427,7 +427,6 @@ router.delete('/:id', async (req, res) => {
 router.get('/orders/:id?', async (req, res) => {
     try {
         const id = req.params.id || req.query.id;
-        // console.log("Received ID:", id); // Log the ID for debugging
 
         if (id) {
             // Handle request with ID
