@@ -1,7 +1,8 @@
 const TABLE = require('../utils/tables')
 const pool = require('../utils/db');
 const { ManageResponseStatus, sendResponse } = require('../commonFunctions');
-
+const designerTable = TABLE.DESIGNER;
+const MarketingTable = TABLE.MARKETING_PENDING;
 // Designer Details
 async function getDesignerDetail(id, req, res) {
     const baseQuery = `SELECT idr.*, ic.name as category_name, ir.name as resin_name, ish.sequence_number as shape_sequence_number, ish.shape as shape_shape, isfs.length as isfs_length, isfs.breadth as isfs_breadth, ibm.name as bezel_material_name, ibc.name as bezel_color_name, inm.name as Inner_material_name, ifl.name as flower_name, icst.name as color_name 
@@ -15,13 +16,16 @@ async function getDesignerDetail(id, req, res) {
         LEFT JOIN \`${TABLE.INNER_MATERIAL_TABLE}\` as inm on inm.id = idr.Inner_material_id
         LEFT JOIN \`${TABLE.FLOWER_TABLE}\` as ifl on ifl.id = idr.flower_id    
         LEFT JOIN \`${TABLE.COLOUR_SHADE}\` as icst on icst.id = idr.color_id    
-        WHERE idr.status = 1`;
-
+        WHERE idr.status = 1`; 
+ 
     if (id) {
         const query1 = `${baseQuery} AND idr.id = ? ORDER BY idr.id DESC`;
         const [results] = await pool.query(query1, [id]);
-
+        
         if (results.length > 0) {
+            const foundRecord = results[0];
+            const [results2] = await pool.query(`SELECT * from ${MarketingTable} where designer_id = ?`, [foundRecord.id]);
+            results[0].marketing_information = results2;
             return sendResponse(res, { data: results[0], message: ManageResponseStatus('fetched'), status: true }, 200);
         }
         return sendResponse(res, { error: ManageResponseStatus('notFound'), status: false }, 404);

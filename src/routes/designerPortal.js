@@ -46,7 +46,7 @@ const ine_affiliate_ModuleID = TABLE.AFFILIATE_MODULE_ID;
 
 router.get("/:id?", async (req, res) => {
   try {
-    await authenticateToken(req);
+    //await authenticateToken(req);
     const id = req.params.id || req.query.id;
     return await getDesignerDetail(id, req, res);
   } catch (error) {
