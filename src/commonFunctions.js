@@ -1133,6 +1133,7 @@ const mergeMarketingPendingtoMain = async (object) => {
 }
 
 const getProducts = async (productIds) => {
+
     const productlistResults=[];
     let queryStr = `SELECT p.*, 
         d.id as designer_id,
@@ -1153,11 +1154,8 @@ const getProducts = async (productIds) => {
         iff.id as flower_id,
         iff.name as flower_name,
         cs.id as color_id,
-        cs.name as color_name,
-        w.id as wid
-    FROM ${tableName} w
-    LEFT JOIN ${tableName2} p ON w.product_id = p.id
-    LEFT JOIN ine_designer d ON p.designer_id = d.id
+        cs.name as color_name
+    FROM ${tableName2} p LEFT JOIN ine_designer d ON p.designer_id = d.id
     LEFT JOIN ine_category c ON d.category_id = c.id
     LEFT JOIN ine_resin r ON d.resin_id = r.id
     LEFT JOIN ine_shape s ON d.shape_id = s.id
@@ -1169,7 +1167,7 @@ const getProducts = async (productIds) => {
 
     const queryParams = [];
 
-    queryStr += ` WHERE w.status = 1 and p.id IN (${productIds.map(() => '?').join(',')})`;
+    queryStr += ` WHERE p.id IN (${productIds.map(() => '?').join(',')})`;
     queryParams.push(...productIds);
 
     const [productResults] = await pool.query(queryStr, queryParams);
@@ -1177,9 +1175,8 @@ const getProducts = async (productIds) => {
     if (productResults.length > 0) {
 
         for (const row of productResults) {
-            let product = responseData.find(item => item.id === row.id);
-            if (!product) {
-                product = {
+            //let product = productResults.find(item => item.id === row.id);
+               let product = {
                     wid: row.wid,
                     id: row.id,
                     designer_id: row.designer_id,
@@ -1216,7 +1213,6 @@ const getProducts = async (productIds) => {
                     videos: []
                 };
                 productlistResults.push(product);
-            }
         }
     }
    return productlistResults;

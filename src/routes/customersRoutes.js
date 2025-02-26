@@ -86,7 +86,6 @@ router.post('/', async (req, res) => {
             let day = anniversary.split('-')[2].slice(0, 2);
             anni = `${year}-${month}-${day}`;
         }
-        console.log(dob, anni);
         // User Details - Insertion
         await pool.query(`INSERT INTO ${tableName2} (user_id, address, state_id, district_id, pincode, date_of_birth, anniversary) VALUES (?,?,?,?,?,?,?)`, [
             insertedRecordId, address, state_id, district_id, pincode, dob, anni,
@@ -264,11 +263,10 @@ router.get('/customer_details', async (req, res) => {
 
         if (userId) {
             const [userResult] =  await getRecordById(userId, tableName, 'id');
-            console.log(userResult)
             if (userResult.length === 0) {
                 return sendResponse(res, { error: ManageResponseStatus('notFound'), status: false }, 404);
             }
-            const [userDetailResult] = await pool.query(`SELECT ine_users_details.* , ine_countries.name as country_name , ine_states.name as state_name FROM ${tableName2} JOIN ine_countries on ine_users_details.country_id=ine_countries.id JOIN ine_states on ine_users_details.state_id=ine_states.id WHERE user_id = ? ORDER BY ID desc;`,[userId]);
+            const [userDetailResult] = await pool.query(`SELECT ine_users_details.* , ine_countries.name as country_name , ine_states.name as state_name,ine_pincodes.pincode as pincode_number FROM ${tableName2} JOIN ine_countries on ine_users_details.country_id=ine_countries.id JOIN ine_states on ine_users_details.state_id=ine_states.id JOIN ine_pincodes on ine_users_details.pincode=ine_pincodes.id WHERE user_id = ? ORDER BY ID desc;`,[userId]);
             const [addressResult] = await pool.query(`SELECT * FROM ${addressTable} WHERE user_id = ? and status = 1 ORDER BY ID desc`, [userId]);
             
             // Referal Result
@@ -284,22 +282,21 @@ router.get('/customer_details', async (req, res) => {
             //Wishlist Result
             let wishlistResults = [];
              // Step 1: Fetch product IDs from wishlist based on user_id
-            const wishlistQuery = `SELECT product_id FROM ine_wishlist WHERE user_id = ?`;
+            const wishlistQuery = `SELECT product_id FROM ine_wishlist WHERE status =1 AND user_id = ? `;
             const [wishlistProducts] = await pool.query(wishlistQuery, [userId]);
 
             if (wishlistProducts.length > 0) {
 
                 const productIds = wishlistProducts.map(item => item.product_id);
-
                 // Step 2: Fetch product details based on the product IDs
-                wishlistResults= getProducts(productIds);
+                wishlistResults= await getProducts(productIds);
             }
 
             // Cart Result 
 
-            let cartResults = [];
+            let cartResults =[];
             // Step 1: Fetch product IDs from wishlist based on user_id
-           const cartQuery = `SELECT product_id FROM ine_cart WHERE user_id = ?`;
+           const cartQuery = `SELECT product_id FROM ine_cart WHERE status =1 AND user_id = ?`;
            const [cartProducts] = await pool.query(cartQuery, [userId]);
 
            if (cartProducts.length > 0) {
@@ -307,7 +304,8 @@ router.get('/customer_details', async (req, res) => {
                const cartProductIds = cartProducts.map(item => item.product_id);
 
                // Step 2: Fetch product details based on the product IDs
-               cartResults = getProducts(cartProductIds);
+               //console.log(getProducts(cartProductIds))
+               cartResults= await getProducts(cartProductIds);
            }
 
             //Orders Result 
@@ -376,7 +374,7 @@ router.get('/customer_details', async (req, res) => {
             resultData.addressResult= addressResult, 
             resultData.referalResults= referalResults, 
             resultData.giftCardResult=giftCardResult,
-            resultData.wishlistResults= wishlistResults,
+            resultData.wishlistResults= wishlistResults.length==0?[]:wishlistResults,
             resultData.cartResults=cartResults,
             resultData.orderResults=orderResults,
             resultData.ticketResults=ticketResults
