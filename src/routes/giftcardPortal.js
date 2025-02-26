@@ -61,7 +61,7 @@ async function generateUniquePinNumber() {
 
 router.get('/:id?', async (req, res) => {
     try {
-        await authenticateToken(req);
+        //await authenticateToken(req);
 
         const type = req.query.type;
         const id = req.query.id;
@@ -89,6 +89,13 @@ router.get('/:id?', async (req, res) => {
                     [result.id]
                 );
                 result['Rows'] = denominationArray;
+
+                const [giftCardHistoryArray] = await pool.query(
+                    `SELECT ine_my_giftcard.created_at as applied_on,ine_my_giftcard.user_id, ine_users.first_name,ine_users.last_name,ine_users.email,ine_users.phone FROM ine_my_giftcard LEFT JOIN ine_users ON ine_users.id = ine_my_giftcard.user_id WHERE ine_my_giftcard.status = 1 AND ine_my_giftcard.giftcard_id = ?`,
+                    [result.id]
+                );
+                result['Rows'] = denominationArray;
+                result['giftCardHistory'] = giftCardHistoryArray;
             }
             return sendResponse(res, { data: id ? results[0] : results, message: ManageResponseStatus('fetched'), status: true }, 200);
         }
