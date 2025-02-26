@@ -268,7 +268,7 @@ router.get('/customer_details', async (req, res) => {
             if (userResult.length === 0) {
                 return sendResponse(res, { error: ManageResponseStatus('notFound'), status: false }, 404);
             }
-            const [userDetailResult] = await pool.query(`SELECT * FROM ${tableName2} WHERE user_id = ? ORDER BY ID desc;`,[userId]);
+            const [userDetailResult] = await pool.query(`SELECT ine_users_details.* , ine_countries.name as country_name , ine_states.name as state_name FROM ${tableName2} JOIN ine_countries on ine_users_details.country_id=ine_countries.id JOIN ine_states on ine_users_details.state_id=ine_states.id WHERE user_id = ? ORDER BY ID desc;`,[userId]);
             const [addressResult] = await pool.query(`SELECT * FROM ${addressTable} WHERE user_id = ? and status = 1 ORDER BY ID desc`, [userId]);
             
             // Referal Result
@@ -371,17 +371,15 @@ router.get('/customer_details', async (req, res) => {
                 WHERE t.status = 1 AND t.user_id = ? ORDER BY id DESC`;
             const [ticketResults] = await pool.query(ticketQuery, [userId]);
 
-
-            const resultData = { ...userResult[0], 
-                userDetailResult: userDetailResult[0], 
-                addressResult: addressResult, 
-                referalResults: referalResults, 
-                giftCardResult: giftCardResult,
-                wishlistResults: wishlistResults,
-                cartResults: cartResults,
-                orderResults:orderResults,
-                ticketResults:ticketResults
-            };
+            const resultData = userResult;
+            resultData.userDetailResult=userDetailResult[0];
+            resultData.addressResult= addressResult, 
+            resultData.referalResults= referalResults, 
+            resultData.giftCardResult=giftCardResult,
+            resultData.wishlistResults= wishlistResults,
+            resultData.cartResults=cartResults,
+            resultData.orderResults=orderResults,
+            resultData.ticketResults=ticketResults
             return sendResponse(res, { data: resultData, message: ManageResponseStatus('fetched'), status: true }, 200);
         }
         else{
