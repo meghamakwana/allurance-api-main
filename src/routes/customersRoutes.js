@@ -266,7 +266,10 @@ router.get('/customer_details', async (req, res) => {
             if (userResult.length === 0) {
                 return sendResponse(res, { error: ManageResponseStatus('notFound'), status: false }, 404);
             }
-            const [userDetailResult] = await pool.query(`SELECT ine_users_details.* , ine_countries.name as country_name , ine_states.name as state_name,ine_pincodes.pincode as pincode_number FROM ${tableName2} JOIN ine_countries on ine_users_details.country_id=ine_countries.id JOIN ine_states on ine_users_details.state_id=ine_states.id JOIN ine_pincodes on ine_users_details.pincode=ine_pincodes.id WHERE user_id = ? ORDER BY ID desc;`,[userId]);
+          
+            const [userDetailResult] = await pool.query(`SELECT ine_users_details.* , ine_countries.name as country_name , ine_states.name as state_name,ine_districts.name as district_name,ine_pincodes.pincode as pincode_number FROM ${tableName2} JOIN ine_countries on ine_users_details.country_id=ine_countries.id JOIN ine_states on ine_users_details.state_id=ine_states.id JOIN ine_pincodes on ine_users_details.pincode=ine_pincodes.id LEFT JOIN ine_districts on ine_users_details.district_id=ine_districts.id  WHERE user_id = ? ORDER BY ID desc;`,[userId]);
+            
+            
             const [addressResult] = await pool.query(`SELECT * FROM ${addressTable} WHERE user_id = ? and status = 1 ORDER BY ID desc`, [userId]);
             
             // Referal Result
