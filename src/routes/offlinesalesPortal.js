@@ -900,4 +900,42 @@ router.get('/invoice/coupons/:id?', async (req, res) => {
     }
 })
 
+router.get('/invoice/searchbymodelnumber/:id', async (req, res) => {
+    try {
+        const id = req.params.id || req.query.id;
+        if (id) {
+            const [results] = await pool.query(`
+                SELECT 
+                ip.*,
+                    ip.id AS id, 
+                    ip.name AS ptitle, 
+                    ip.price AS pbaseprice, 
+                    ip.discount_price AS pdiscountprice,
+                    id.model_number,
+                    GROUP_CONCAT(DISTINCT isn.serial_number) AS serial_numbers
+                FROM ${MARKETING_TABLE} AS ip 
+                LEFT JOIN ${DESIGNER_TABLE} AS id ON id.id = ip.designer_id
+                LEFT JOIN ${REPLICATOR} AS ir ON ir.designer_id = id.model_number
+                LEFT JOIN ine_serial_number AS isn ON ir.id = isn.replicator_id
+                WHERE id.model_number = ?
+                GROUP BY ip.id
+            `, [id]);
+            
+            
+            
+            if (results.length > 0) {
+                return sendResponse(res, { data: results, message: ManageResponseStatus('fetched'), status: true }, 200);
+            }
+            return sendResponse(res, { error: ManageResponseStatus('notFound'), status: false }, 404);
+        }
+        const [results] = await pool.query(`SELECT * FROM ${USER_ADDRESS}`);
+        if (results.length > 0) {
+            return sendResponse(res, { data: results, message: ManageResponseStatus('fetched'), status: true, count: results.length }, 200);
+        }
+        return sendResponse(res, { error: ManageResponseStatus('notFound'), status: false }, 404);
+    } catch (error) {
+        console.log(error)
+        return sendResponse(res, { error: `Error occurred: ${error.message}`, status: false }, 500);
+    }
+})
 module.exports = router;
