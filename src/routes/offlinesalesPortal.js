@@ -723,7 +723,7 @@ router.get('/invoice/searchbyserialnumber/:id', async (req, res) => {
                 FROM ine_serial_number AS isn
                 LEFT JOIN ${REPLICATOR} AS ir ON ir.id = isn.replicator_id
                 LEFT JOIN ${DESIGNER_TABLE} AS id ON id.model_number = ir.designer_id
-                LEFT JOIN ${PRODUCTS} AS ip ON ip.designer_id = id.id
+                LEFT JOIN ${MARKETING_TABLE} AS ip ON ip.designer_id = id.id
                 WHERE serial_number = ?`, [id]);
             if (results.length > 0) {
                 return sendResponse(res, { data: results[0], message: ManageResponseStatus('fetched'), status: true }, 200);
@@ -920,9 +920,7 @@ router.get('/invoice/searchbymodelnumber/:id', async (req, res) => {
                 WHERE id.model_number = ?
                 GROUP BY ip.id
             `, [id]);
-            
-            
-            
+                       
             if (results.length > 0) {
                 return sendResponse(res, { data: results, message: ManageResponseStatus('fetched'), status: true }, 200);
             }
