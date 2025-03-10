@@ -329,7 +329,6 @@ const generateUniqueInvoiceNumber = async () => {
 router.post('/createorder', async (req, res) => {
     try {
         const requestData = await req.body;
-
         // Validate request data
         const requiredFields = ['cartproducts', 'address', 'finalamount', 'channel_mode'];
         for (const field of requiredFields) {
@@ -343,7 +342,22 @@ router.post('/createorder', async (req, res) => {
         const invoiceNumber = await generateUniqueInvoiceNumber();
 
         // Insertion into orders table
-        const [insertOrderResult] = await pool.query(`INSERT INTO ${tableName} (total_amount,base_amount,assisted_by,tax_amount,payment_status,payment_by_customer,order_status, channel_mode, notes, order_id, invoice_id, invoice_date, total_items, customer_id, address_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?)`, [
+        const [insertOrderResult] = await pool.query(`INSERT INTO ${tableName} (
+            total_amount,
+            base_amount,
+            assisted_by,
+            tax_amount,
+            payment_status,
+            payment_by_customer,
+            order_status, 
+            channel_mode, 
+            notes, 
+            order_id, 
+            invoice_id, 
+            invoice_date, 
+            total_items, 
+            customer_id, 
+            address_id,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?,?,?)`, [
             requestData?.finalamount,
             requestData?.baseAmount || 0,
             requestData?.assisted_by || null,
@@ -357,21 +371,23 @@ router.post('/createorder', async (req, res) => {
             invoiceNumber,
             requestData?.cartproducts?.length,
             requestData?.user_id || requestData?.userDetails.id,
-            requestData?.addressId,
+            requestData?.addressId || '',
+            requestData?.user_id || requestData?.userDetails.id
         ]);
 
         const insertedOrderId = insertOrderResult.insertId;
 
         // Insertion into order products table
         for (const product of requestData.cartproducts) {
-            await pool.query(`INSERT INTO ${tablename9} (order_id, invoice_id, product_id, product_model_number,serial_number, quantity, price) VALUES (?, ?, ?, ?,?, ?,?)`, [
+            await pool.query(`INSERT INTO ${tablename9} (order_id, invoice_id, product_id, product_model_number,serial_number, quantity, price,created_by) VALUES (?, ?, ?, ?,?, ?,?,?)`, [
                 insertedOrderId,
                 invoiceNumber, // Associate the same invoice number
                 product.id,
                 product.model_number || product.irdesignerid,
                 product.serial_number || null,
                 product.quantity,
-                product.price
+                product.price,
+                requestData?.user_id || requestData?.userDetails.id
             ]);
         }
 
