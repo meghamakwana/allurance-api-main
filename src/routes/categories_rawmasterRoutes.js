@@ -18,7 +18,7 @@ router.post('/', upload.fields([{ name: 'image1' }, { name: 'image2' }]), async 
     try {
         // console.log(req.files); // Add logging to see if files are received
         // console.log('req.bodyreq.body',req.body)
-        const { name, description, code, pair, apihitid } = req.body;
+        const { name, description, code, pair, apihitid,hsn, gstPercentage } = req.body;
 
         // Validate request data
         if (!name || !code) {
@@ -39,14 +39,16 @@ router.post('/', upload.fields([{ name: 'image1' }, { name: 'image2' }]), async 
 
         
         // Insertion
-        const [insertResult] = await pool.query(`INSERT INTO ${tableName} (name, description, code, pair, image1, image2, created_by) VALUES (?, ?, ?, ?, ?, ?,?)`, [
+        const [insertResult] = await pool.query(`INSERT INTO ${tableName} (name, description, code, pair, image1, image2, created_by,hsn, gstPercentage) VALUES (?, ?, ?, ?, ?, ?,?,?,?)`, [
             name,
             description || null,
             code,
             pair || 'No',
             image1BlobName,
             image2BlobName,
-            apihitid
+            apihitid,
+            hsn, 
+            gstPercentage
         ]);
 
         const insertedRecordId = insertResult.insertId;

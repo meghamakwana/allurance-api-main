@@ -720,10 +720,11 @@ router.get('/invoice/searchbyserialnumber/:id', async (req, res) => {
         if (id) {
             const [results] = await pool.query(`
                 SELECT isn.*, ir.designer_id as irdesignerid, ir.id as irid, id.id as designer_id, ip.name as ptitle, ip.price as pbaseprice , ip.discount_price as pdiscountprice, ip.id as id
-                FROM ine_serial_number AS isn
+                ,ic.hsn,ic.gstPercentage FROM ine_serial_number AS isn
                 LEFT JOIN ${REPLICATOR} AS ir ON ir.id = isn.replicator_id
                 LEFT JOIN ${DESIGNER_TABLE} AS id ON id.model_number = ir.designer_id
                 LEFT JOIN ${MARKETING_TABLE} AS ip ON ip.designer_id = id.id
+                LEFT JOIN ${TABLE.CATEGORY} AS ic ON ic.id = id.category_id
                 WHERE serial_number = ?`, [id]);
             if (results.length > 0) {
                 return sendResponse(res, { data: results[0], message: ManageResponseStatus('fetched'), status: true }, 200);
@@ -912,11 +913,12 @@ router.get('/invoice/searchbymodelnumber/:id', async (req, res) => {
                     ip.price AS pbaseprice, 
                     ip.discount_price AS pdiscountprice,
                     id.model_number,
-                    GROUP_CONCAT(DISTINCT isn.serial_number) AS serial_numbers
+                    GROUP_CONCAT(DISTINCT isn.serial_number) AS serial_numbers,ic.hsn,ic.gstPercentage
                 FROM ${MARKETING_TABLE} AS ip 
                 LEFT JOIN ${DESIGNER_TABLE} AS id ON id.id = ip.designer_id
                 LEFT JOIN ${REPLICATOR} AS ir ON ir.designer_id = id.model_number
                 LEFT JOIN ine_serial_number AS isn ON ir.id = isn.replicator_id
+                LEFT JOIN ${TABLE.CATEGORY} AS ic ON ic.id = id.category_id
                 WHERE id.model_number = ?
                 GROUP BY ip.id
             `, [id]);
