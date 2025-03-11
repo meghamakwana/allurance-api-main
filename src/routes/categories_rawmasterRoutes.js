@@ -104,7 +104,7 @@ router.put('/', upload.fields([{ name: 'image1' }, { name: 'image2' }]),  async 
 
         
         
-        const { name, description, code, pair, image1, image2, apihitid } = req.body;
+        const { name, description, code, pair, image1, image2, apihitid,hsn, gstPercentage  } = req.body;
         
 
         // var image1Data = await processImageUpload('image1', image1, categoriesFolderPath);
@@ -122,7 +122,7 @@ router.put('/', upload.fields([{ name: 'image1' }, { name: 'image2' }]),  async 
             image2Data = await uploadToAzureBlob(image2File);
         }
 
-        await pool.query(`UPDATE ${tableName} SET name = ?, description = ?, code = ?, pair = ?, image1 = ?, image2 = ?,updated_by=? , updated_at = NOW() WHERE id = ?`, [name, description, code, pair, image1Data, image2Data, apihitid, id]);
+        await pool.query(`UPDATE ${tableName} SET name = ?, description = ?, code = ?, pair = ?, image1 = ?, image2 = ?,updated_by=? , updated_at = NOW() , hsn=?, gstPercentage=?  WHERE id = ?`, [name, description, code, pair, image1Data, image2Data, apihitid,hsn, gstPercentage , id]);
 
         // Retrieve the updated record
         const updatedRecord = await getRecordById(id, tableName, 'id');
