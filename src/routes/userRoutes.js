@@ -345,10 +345,8 @@ router.put('/frontendprofile', upload.any(), async (req, res) => {
     queryParams.push(id);
 
     await pool.query(updateQuery, queryParams);
-    // console.log(date_of_birth, anniversary)
     await pool.query(`UPDATE ${tableName2} SET date_of_birth = ?, anniversary = ?, gender = ? WHERE user_id = ?`, [date_of_birth, anniversary, gender, id]);
     const [updatedRecord] = await getRecordById(id, tableName, 'id');
-    console.log(updatedRecord)
 
     return sendResponse(res, { data: updatedRecord, message: ManageResponseStatus('updated'), status: true }, 200);
 
@@ -623,16 +621,13 @@ router.post('/sendotp', async (req, res) => {
 router.post('/verifyOtpAndSignup', async (req, res) => {
   try {
     const { phone, otp, first_name, last_name} = req.body;
-    // console.log(phone,"\n",otp,"\n",first_name,"\n",last_name);
     if (!phone || !otp) {
       return sendResponse(res, { error: 'Phone and OTP fields are required', status: false }, 400);
     }
 
     const existingRecord = await pool.query(`SELECT * FROM ${tableName} WHERE phone = ?`, [phone]);
     const existInTemp = await pool.query(`SELECT * FROM ${tempTableName} WHERE phone = ?`, [phone]);
-    // console.log(typeof existingRecord[0].length)
     if (existingRecord[0].length === 0) {
-      console.log("not existing")
       if (existInTemp[0].length === 0) {
         return sendResponse(res, { error: 'Phone not found', status: false }, 404);
       }

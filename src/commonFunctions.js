@@ -7,7 +7,8 @@ const path = require('path');
 const TABLE = require('./utils/tables')
 const bwipjs = require('bwip-js');
 const TABLES = require('./utils/tables');
-
+const tableName = TABLE.MY_WISHLIST;
+const tableName2 = TABLE.PRODUCT;
 
 
 const ensureContainerExists = async () => {
@@ -1131,6 +1132,92 @@ const mergeMarketingPendingtoMain = async (object) => {
     */
 }
 
+const getProducts = async (productIds) => {
+
+    const productlistResults=[];
+    let queryStr = `SELECT p.*, 
+        d.id as designer_id,
+        d.model_number, 
+        d.sub_model_number, 
+        c.id as category_id,
+        c.name as category_name, 
+        r.id as resin_id,
+        r.name as resin_name, 
+        s.id as shape_id,
+        s.shape as shape_name,
+        b.id as bezel_material_id,
+        b.name as bezel_material,
+        bc.id as bezel_color_id,
+        bc.name as bezel_color,
+        im.id as inner_material_id,
+        im.name as inner_material_name,
+        iff.id as flower_id,
+        iff.name as flower_name,
+        cs.id as color_id,
+        cs.name as color_name
+    FROM ${tableName2} p LEFT JOIN ine_designer d ON p.designer_id = d.id
+    LEFT JOIN ine_category c ON d.category_id = c.id
+    LEFT JOIN ine_resin r ON d.resin_id = r.id
+    LEFT JOIN ine_shape s ON d.shape_id = s.id
+    LEFT JOIN ine_bezel_material b ON d.bezel_material_id = b.id
+    LEFT JOIN ine_bezel_color bc ON d.bezel_color_id = bc.id
+    LEFT JOIN ine_inner_material im ON d.inner_material_id = im.id
+    LEFT JOIN ine_flower iff ON d.flower_id = iff.id
+    LEFT JOIN ine_color_shade cs ON d.color_id = cs.id`;
+
+    const queryParams = [];
+
+    queryStr += ` WHERE p.id IN (${productIds.map(() => '?').join(',')})`;
+    queryParams.push(...productIds);
+
+    const [productResults] = await pool.query(queryStr, queryParams);
+
+    if (productResults.length > 0) {
+
+        for (const row of productResults) {
+            //let product = productResults.find(item => item.id === row.id);
+               let product = {
+                    wid: row.wid,
+                    id: row.id,
+                    designer_id: row.designer_id,
+                    weight: row.weight,
+                    model_number: row.model_number,
+                    sub_model_number: row.sub_model_number,
+                    product_name: row.name,
+                    shape_id: row.shape_id,
+                    shape: row.shape_name,
+                    resin_id: row.resin_id,
+                    resin: row.resin_name,
+                    category_id: row.category_id,
+                    category: row.category_name,
+                    bezel_material_id: row.bezel_material_id,
+                    bezel_material: row.bezel_material,
+                    inner_material_id: row.inner_material_id,
+                    inner_material_name: row.inner_material_name,
+                    flower_id: row.flower_id,
+                    flower_name: row.flower_name,
+                    bezel_color_id: row.bezel_color_id,
+                    bezel_color: row.bezel_color,
+                    color_id: row.color_id,
+                    color: row.color_name,
+                    short_description: row.short_description,
+                    long_description: row.long_description,
+                    price: row.price,
+                    discount_price: row.discount_price,
+                    stock: row.stock,
+                    sell_stock: row.sell_stock,
+                    coming_soon: row.coming_soon,
+                    created_at: row.created_at,
+                    status: row.status,
+                    images: [],
+                    videos: []
+                };
+                productlistResults.push(product);
+        }
+    }
+   return productlistResults;
+}
+
 module.exports = {
     ensureContainerExists,
     uploadToAzureBlob,
@@ -1193,5 +1280,6 @@ module.exports = {
     mergeMarketingPendingtoMain,
     getCountryByStateId,
     requestIDNumber,
-    generateRandomCode
+    generateRandomCode,
+    getProducts
 }

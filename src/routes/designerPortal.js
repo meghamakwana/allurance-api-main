@@ -612,15 +612,15 @@ router.put("/approved/:id", async (req, res) => {
         for (let i = 0; i < GetLatestRecord[0].quantity; i++) {
           let serial_number =
              await generateSerialNumbers();
-          let l_serial_number = "";
-          let r_serial_number = "";
+          let l_serial_number = serial_number+"-L";
+          let r_serial_number = serial_number+"-R";
           let pairValue = 'No'; // Default to 2 (No)
 
           if (GetLatestRecord[0].dpair === "Yes") {
             pairValue = 'Yes'; // If dpair is 'yes', set pairValue to 1 (Yes)
             // Modify l_serial_number and r_serial_number accordingly
-            l_serial_number = serial_number + " -L";
-            r_serial_number = serial_number + " -R";
+            l_serial_number = serial_number + "-L";
+            r_serial_number = serial_number + "-R";
           }
 
           // Prepare query parameters
@@ -632,14 +632,14 @@ router.put("/approved/:id", async (req, res) => {
           ];
 
           // Include l_serial_number and r_serial_number only if dpair is 'yes'
-          if (pairValue === 1) {
+         // if (pairValue === 1) {
             queryParameters.push(l_serial_number);
             queryParameters.push(r_serial_number);
-          } else {
+       //   } else {
             // Add null placeholders for l_serial_number and r_serial_number if dpair is not 'yes'
-            queryParameters.push(null);
-            queryParameters.push(null);
-          }
+          //   queryParameters.push(null);
+          //   queryParameters.push(null);
+          // }
 
           await pool.query(
             `INSERT INTO serial_number (replicator_id, pair, serial_number, serial_number_left, serial_number_right) VALUES (?, ?, ?, ?, ?)`,

@@ -3,14 +3,23 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const TABLE = require('../utils/tables')
 const pool = require('../utils/db');
-const { getQueryParamId, getRecordById, ManageResponseStatus, sendResponse, getQueryParamIds, activityLog, validatePassword, checkEmailExistOrNot, checkPhoneExistOrNot, processImageUpload, generateUniqueUserId } = require('../commonFunctions')
+const { getQueryParamId, getRecordById, ManageResponseStatus, sendResponse, getQueryParamIds, activityLog, validatePassword, checkEmailExistOrNot, checkPhoneExistOrNot, processImageUpload, generateUniqueUserId , getProducts} = require('../commonFunctions')
 const router = express.Router();
 
 const tableName = TABLE.USERS;
 const ine_customers_ModuleID = TABLE.CUSTOMER_MODULE_ID;
 const tableName2 = TABLE.USERS_DETAILS;
 const tableName3 = TABLE.ROLE;
-
+const referalTable = TABLE.MY_REFERRAL;
+const addressTable = TABLE.MY_ADDRESS;
+const giftCardTable = TABLE.MY_GIFTCARD;
+const giftCardGenerateTable = TABLE.GIFTCARD_GENERATE;
+const ORDERS = TABLE.ORDERS;
+const ORDER_PRODUCTS = TABLE.ORDER_PRODUCTS;
+const SERIAL_NUMBERS = TABLE.SERIAL_NUMBER;
+const REPLICATOR = TABLE.REPLICATOR;
+const DESIGNER_TABLE = TABLE.DESIGNER;
+const MARKETING_TABLE = TABLE.MARKETING;
 // Add
 router.post('/', async (req, res) => {
     try {
@@ -77,7 +86,6 @@ router.post('/', async (req, res) => {
             let day = anniversary.split('-')[2].slice(0, 2);
             anni = `${year}-${month}-${day}`;
         }
-        console.log(dob, anni);
         // User Details - Insertion
         await pool.query(`INSERT INTO ${tableName2} (user_id, address, state_id, district_id, pincode, date_of_birth, anniversary) VALUES (?,?,?,?,?,?,?)`, [
             insertedRecordId, address, state_id, district_id, pincode, dob, anni,
@@ -248,5 +256,142 @@ router.delete('/', async (req, res) => {
         return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
     }
 });
+router.get('/customer_details', async (req, res) => {
+    try {
+        const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+        const userId = getQueryParamId(fullUrl);
+
+        if (userId) {
+            const [userResult] =  await getRecordById(userId, tableName, 'id');
+            if (userResult.length === 0) {
+                return sendResponse(res, { error: ManageResponseStatus('notFound'), status: false }, 404);
+            }
+          
+            const [userDetailResult] = await pool.query(`SELECT ine_users_details.* , ine_countries.name as country_name , ine_states.name as state_name,ine_districts.name as district_name,ine_pincodes.pincode as pincode_number FROM ${tableName2} JOIN ine_countries on ine_users_details.country_id=ine_countries.id JOIN ine_states on ine_users_details.state_id=ine_states.id JOIN ine_pincodes on ine_users_details.pincode=ine_pincodes.id LEFT JOIN ine_districts on ine_users_details.district_id=ine_districts.id  WHERE user_id = ? ORDER BY ID desc;`,[userId]);
+            
+            
+            const [addressResult] = await pool.query(`SELECT * FROM ${addressTable} WHERE user_id = ? and status = 1 ORDER BY ID desc`, [userId]);
+            
+            // Referal Result
+            const [referalResults] =  await pool.query(`SELECT r.*, u.first_name as fname, u.last_name as lname, u.email FROM ${referalTable} as r LEFT JOIN ${tableName} as u on u.id = r.user_id WHERE r.refer_id = ? ORDER BY ID desc`, [userId]);
+            const [totalResult] = await pool.query(`SELECT SUM(amount) as totalAmount FROM ${referalTable} WHERE refer_id = ?`, [userId]);
+            const totalReferalAmount = totalResult[0].totalAmount || 0;
+            
+            //Giftcards 
+            const [giftCardResult] = await pool.query(`SELECT g.*, gg.gift_card_number, gg.pin_number, gg.amount, gg.expiry_date FROM ${giftCardTable} as g 
+                LEFT JOIN ${giftCardGenerateTable} as gg on gg.id = g.giftcard_id WHERE g.user_id = ? ORDER BY g.ID desc`, [userId]);
+
+
+            //Wishlist Result
+            let wishlistResults = [];
+             // Step 1: Fetch product IDs from wishlist based on user_id
+            const wishlistQuery = `SELECT product_id FROM ine_wishlist WHERE status =1 AND user_id = ? `;
+            const [wishlistProducts] = await pool.query(wishlistQuery, [userId]);
+
+            if (wishlistProducts.length > 0) {
+
+                const productIds = wishlistProducts.map(item => item.product_id);
+                // Step 2: Fetch product details based on the product IDs
+                wishlistResults= await getProducts(productIds);
+            }
+
+            // Cart Result 
+
+            let cartResults =[];
+            // Step 1: Fetch product IDs from wishlist based on user_id
+           const cartQuery = `SELECT product_id FROM ine_cart WHERE status =1 AND user_id = ?`;
+           const [cartProducts] = await pool.query(cartQuery, [userId]);
+
+           if (cartProducts.length > 0) {
+
+               const cartProductIds = cartProducts.map(item => item.product_id);
+
+               // Step 2: Fetch product details based on the product IDs
+               //console.log(getProducts(cartProductIds))
+               cartResults= await getProducts(cartProductIds);
+           }
+
+            //Orders Result 
+            const [orderResults] = await pool.query(`
+                SELECT t1.*
+                FROM ${ORDERS} t1 
+                WHERE t1.customer_id = ?`, [userId]);
+                if (orderResults.length > 0) {
+                    for (let index = 0; index < orderResults.length; index++) {
+                        const result = orderResults[index];
+                        const [serialNumberResults] = await pool.query(`
+                            SELECT serial_number, is_returned
+                            FROM ${ORDER_PRODUCTS}
+                            WHERE order_id = ?`, result.id);
+        
+                        if (serialNumberResults.length > 0) {
+                            const serialNumbers = serialNumberResults.map(row => ({
+                                serial_number: row.serial_number ? row.serial_number.trim() : null,
+                                is_returned: row.is_returned
+                            }));
+        
+                            const lineSerialNumbers = await Promise.all(serialNumbers.map(async ({ serial_number, is_returned }) => {
+                                if (serial_number) {
+                                    const [products] = await pool.query(`
+                                        SELECT s.batch_sequence_no as batch_number, s.serial_number, s.l_serial_number, s.r_serial_number, d.model_number, m2.*, ? as is_returned
+                                        FROM ${SERIAL_NUMBERS} s
+                                        LEFT JOIN ${REPLICATOR} r ON s.replicator_id = r.id
+                                        LEFT JOIN ${DESIGNER_TABLE} d ON r.designer_id = d.model_number
+                                        LEFT JOIN ${MARKETING_TABLE} m2 ON d.id = m2.designer_id
+                                        WHERE s.serial_number = ?`, [is_returned, serial_number]);
+                                    return products;
+                                } else {
+                                    return []; // Return empty array if serial_number is null
+                                }
+                            }));
+        
+                            const products = lineSerialNumbers.flat(); // Flatten the array of arrays
+        
+                            // Aggregate products based on model number and calculate total quantity
+                            const aggregatedProducts = {};
+                            products.forEach(product => {
+                                if (aggregatedProducts[product.model_number]) {
+                                    aggregatedProducts[product.model_number].quantity++;
+                                } else {
+                                    aggregatedProducts[product.model_number] = { ...product, quantity: 1 };
+                                }
+                            });
+        
+                            orderResults[index].Products = Object.values(aggregatedProducts);
+                        }
+                    }
+                    
+                }
+                    
+
+
+            // Ticket Result
+            let ticketQuery = `SELECT t.*, ts.title as subject_name, u.first_name as user_first_name, u.last_name as user_last_name FROM ine_tickets as t 
+                LEFT JOIN ine_ticket_subject as ts on ts.id = t.subject_id 
+                LEFT JOIN ine_users as u on u.id = t.user_id
+                WHERE t.status = 1 AND t.user_id = ? ORDER BY id DESC`;
+            const [ticketResults] = await pool.query(ticketQuery, [userId]);
+
+            const resultData = userResult;
+            resultData.userDetailResult=userDetailResult[0];
+            resultData.addressResult= addressResult, 
+            resultData.referalResults= referalResults, 
+            resultData.giftCardResult=giftCardResult,
+            resultData.wishlistResults= wishlistResults.length==0?[]:wishlistResults,
+            resultData.cartResults=cartResults,
+            resultData.orderResults=orderResults,
+            resultData.ticketResults=ticketResults
+            return sendResponse(res, { data: resultData, message: ManageResponseStatus('fetched'), status: true }, 200);
+        }
+        else{
+            return sendResponse(res, { error: "User Id Required"}, 500);
+        }  
+
+    } catch (error) {
+        console.log(error)
+        return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
+    }
+});
+
 
 module.exports = router;

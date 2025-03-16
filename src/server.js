@@ -74,6 +74,7 @@ const rawProductPortal = require('./routes/rawProductPortal');
 const frontendcampaignPortal = require('./routes/frontendcampaignPortal');
 const inventorycampaignPortal = require('./routes/inventoryPortal');
 const managerequestPortal = require('./routes/managerequestPortal');
+const invoiceRoute = require('./routes/invoiceRoute');
 
 require('dotenv').config();
 
@@ -160,7 +161,7 @@ app.use('/api/manage_orders', manage_orders);
 app.use('/api/manage_sell', manage_sell);
 app.use('/api/manage_dashboard', manage_dashboard);
 app.use('/api/inventory_lookup', inventory_lookup);
-
+app.use('/api/offlinesales/invoice', invoiceRoute);
 app.use('/api/authportal', AuthPortal);
 app.use('/api/channelassign', ChannelPortal);
 app.use('/api/customers', CustomerPortal);
@@ -183,7 +184,7 @@ app.use('/api/fetchrawproducts', rawProductPortal);
 app.use('/api/frontendcampaignlist', frontendcampaignPortal);
 app.use('/api/inventory', inventorycampaignPortal);
 app.use('/api/managerequest', managerequestPortal);
-
+app.use('/api/offlinesales/invoice', invoiceRoute);
 
 
 // app.listen(port, () => {
