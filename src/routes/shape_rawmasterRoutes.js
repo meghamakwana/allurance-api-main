@@ -65,11 +65,15 @@ router.get('/sequenceNumber', async (req, res) => {
     try {
         const [results] = await pool.query(`
             SELECT 
-              LPAD((MAX(sequence_number)+1), 2, '0') as seq
+              LPAD((CAST(MAX(sequence_number) AS UNSIGNED ) + 1), 2, '0') as seq
             FROM ${tableName} 
             WHERE status!=0
           `);
-        return sendResponse(res, { data: results[0], message: ManageResponseStatus('fetched'), status: true, count: results.length }, 200);
+          let response = { "seq" : '01'}
+          if(results[0].seq){
+            response.seq=results[0].seq;
+          }
+        return sendResponse(res, { data: response, message: ManageResponseStatus('fetched'), status: true, count: results.length }, 200);
     } catch (error) {
         return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
     }
