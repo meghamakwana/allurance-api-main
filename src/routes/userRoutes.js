@@ -845,7 +845,7 @@ router.post('/notifications', async (req, res) => {
       return sendResponse(res, { error: 'User ID must be required', status: false }, 400);
     }
 
-    const { notification_new_order_email, notification_order_shipping_email, notification_order_delivery_email } = req.body;
+    const { notification_new_order_email, notification_order_shipping_email, notification_order_delivery_email, transactional_email, transactional_sms, promotional_email, promotional_sms } = req.body;
 
     const notifications = [
       { key: 'notification_new_order_email', value: notification_new_order_email || 'off' },
