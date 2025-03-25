@@ -104,7 +104,7 @@ router.post('/', upload.any(), async (req, res) => {
 
 
 
-    const { first_name, last_name, email, referral_code: bodyReferralCode, state_id, district_id, pincode, post_office_id , address, govt_id_number, pan_number, phone, role_id  } = req.body;
+    const { first_name, last_name, email, referral_code: bodyReferralCode, state_id, district_id, pincode, post_office_id, address, govt_id_number, pan_number, phone, role_id } = req.body;
     //const role_id = 9;
 
     // Validate request data
@@ -161,15 +161,15 @@ router.post('/', upload.any(), async (req, res) => {
       aimg = await uploadToAzureBlob(avatar);
     }
     let country_id;
-    if(state_id){
-     
+    if (state_id) {
+
       await getCountryByStateId(state_id).then((obj) => {
         country_id = obj.country_id;
       }).catch((error) => {
         console.log('call error');
       })
     }
-  
+
 
 
     if (bodyReferralCode) {
@@ -185,14 +185,14 @@ router.post('/', upload.any(), async (req, res) => {
     const formattedNumber = String(result2[0]?.count + 1).padStart(4, '0');
     const newPrefix = `${rolePrefixName}A${formattedNumber}`;
 
-    
-    
+
+
 
     // // Password Validation
     // if (!validatePassword(password)) {
     //   return sendResponse(res, { error: 'Password must be at least 9 characters long and contain at least one uppercase letter, one lowercase letter and one special character.', status: false }, 400);
     // }
-    
+
     // Hash the password
     const hashedPassword = newPrefix ? await bcrypt.hash(newPrefix, 10) : undefined;
 
@@ -252,7 +252,7 @@ router.get('/', async (req, res) => {
   try {
     await authenticateToken(req);
     const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-   
+
     const id = getQueryParamId(fullUrl);
     const baseQuery = `SELECT 
           u.*, ir.name as rolename, ud.date_of_birth, ud.anniversary, ud.gender, ud.address, st.name as state, ud.state_id, sd.name as district, ud.district_id, ud.pincode,ud.post_office_id,pt.name as post_office_name, ud.govt_id_number, ud.govt_id_upload, ud.pan_number, ud.pan_upload, ud.my_referral_code 
@@ -375,7 +375,7 @@ router.put('/', upload.any(), async (req, res) => {
 
     const [existingRecord2] = await getRecordDetailById(id, tableName2, 'user_id');
 
-    const { role_id, first_name, last_name, email, phone, password, gender, govt_id_number, pan_number, date_of_birth, anniversary, status, state_id, district_id, address, pincode,post_office_id } = req.body;
+    const { role_id, first_name, last_name, email, phone, password, gender, govt_id_number, pan_number, date_of_birth, anniversary, status, state_id, district_id, address, pincode, post_office_id } = req.body;
 
     // Validate request data
     if (!first_name || !last_name || !email || !phone) {
@@ -496,7 +496,7 @@ router.put('/', upload.any(), async (req, res) => {
 
     await pool.query(updateQuery, queryParams);
 
-    await pool.query(`UPDATE ${tableName2} SET date_of_birth = ?, anniversary = ?, gender = ?, govt_id_number = ?, pan_number = ?, govt_id_upload = ?, pan_upload = ?, state_id = ?, district_id = ?, country_id = ?, address = ?, pincode = ? , post_office_id = ? WHERE user_id = ?`, [date_of_birth, anniversary, gender, govt_id_number, pan_number, gimg, pimg, state_id, district_id, country_id, address, pincode,post_office_id, id]);
+    await pool.query(`UPDATE ${tableName2} SET date_of_birth = ?, anniversary = ?, gender = ?, govt_id_number = ?, pan_number = ?, govt_id_upload = ?, pan_upload = ?, state_id = ?, district_id = ?, country_id = ?, address = ?, pincode = ? , post_office_id = ? WHERE user_id = ?`, [date_of_birth, anniversary, gender, govt_id_number, pan_number, gimg, pimg, state_id, district_id, country_id, address, pincode, post_office_id, id]);
 
     // const query1 = `SELECT u.*, ir.name as rolename, ud.date_of_birth, ud.anniversary, ud.gender, ud.address, ud.state, ud.district, ud.pincode, ud.govt_id_number, ud.govt_id_upload, ud.pan_number, ud.pan_upload, ud.my_referral_code FROM \`${tableName}\` as u LEFT JOIN \`${tableName2}\` as ud on ud.user_id = u.id LEFT JOIN \`${tableName3}\` as ir on ir.id = u.role_id where u.status = 1 AND u.id = ? ORDER BY u.id DESC`;
 
@@ -596,14 +596,14 @@ router.post('/sendotp', async (req, res) => {
 
     const otp = generateOTP(6);
 
-    if(existingRecord.length === 0){
+    if (existingRecord.length === 0) {
       const [existsInTemp] = await pool.query(`SELECT * FROM ${tempTableName} WHERE phone = ?`, [phone]);
       if (existsInTemp.length === 0) {
         const [insertedRecord] = await pool.query(`INSERT INTO ${tempTableName} (phone, otp) VALUES (?, ?)`, [phone, otp]);
-      }else{
+      } else {
         await pool.query(`UPDATE ${tempTableName} SET otp = ?, updated_at = NOW() WHERE phone = ?`, [otp, phone]);
       }
-      return sendResponse(res, { message: 'OTP has been sent to your phone', otp:otp, status: true }, 200);
+      return sendResponse(res, { message: 'OTP has been sent to your phone', otp: otp, status: true }, 200);
     }
 
     await pool.query(`UPDATE ${tableName} SET otp = ?, updated_at = NOW() WHERE phone = ?`, [otp, phone]);
@@ -611,7 +611,7 @@ router.post('/sendotp', async (req, res) => {
     await activityLog(ine_users_ModuleID, existingRecord, updatedRecord, 2, 0);
 
     // await sendOTPEmail(email, otp);
-    return sendResponse(res, { message: 'OTP has been sent to your phone',otp:otp, status: true }, 200);
+    return sendResponse(res, { message: 'OTP has been sent to your phone', otp: otp, status: true }, 200);
 
   } catch (error) {
     return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
@@ -620,7 +620,7 @@ router.post('/sendotp', async (req, res) => {
 
 router.post('/verifyOtpAndSignup', async (req, res) => {
   try {
-    const { phone, otp, first_name, last_name} = req.body;
+    const { phone, otp, first_name, last_name } = req.body;
     if (!phone || !otp) {
       return sendResponse(res, { error: 'Phone and OTP fields are required', status: false }, 400);
     }
@@ -631,7 +631,7 @@ router.post('/verifyOtpAndSignup', async (req, res) => {
       if (existInTemp[0].length === 0) {
         return sendResponse(res, { error: 'Phone not found', status: false }, 404);
       }
-      else{
+      else {
         const existingRecord = await pool.query(`SELECT * FROM ${tempTableName} WHERE phone = ? AND otp = ?`, [phone, otp]);
         if (existingRecord[0].length === 0) {
           return sendResponse(res, { error: 'Sorry, OTP is Invalid', status: false }, 400);
@@ -641,9 +641,9 @@ router.post('/verifyOtpAndSignup', async (req, res) => {
         const token = jwt.sign({ data: insertedRecord[0] }, API_SECRET_KEY, { expiresIn: API_TOKEN_EXPIRESIN });
 
         await pool.query(`UPDATE ${tempTableName} SET otp = NULL, updated_at = NOW() WHERE phone = ?`, [phone]);
-        return sendResponse(res, { message: 'OTP verified successfully',accessToken:token, status: true }, 200);
+        return sendResponse(res, { message: 'OTP verified successfully', accessToken: token, status: true }, 200);
       }
-    }else{
+    } else {
       console.log("existing")
       const existingRecord = await pool.query(`SELECT * FROM ${tableName} WHERE phone = ? AND otp = ?`, [phone, otp]);
       if (existingRecord[0].length === 0) {
@@ -651,7 +651,7 @@ router.post('/verifyOtpAndSignup', async (req, res) => {
       }
       await pool.query(`UPDATE ${tableName} SET otp = NULL, updated_at = NOW() WHERE phone = ?`, [phone]);
       const token = jwt.sign({ data: existingRecord[0] }, API_SECRET_KEY, { expiresIn: API_TOKEN_EXPIRESIN });
-      return sendResponse(res, { message: 'OTP verified successfully',accessToken:token, status: true }, 200);
+      return sendResponse(res, { message: 'OTP verified successfully', accessToken: token, status: true }, 200);
     }
   }
   catch (error) {
@@ -850,7 +850,11 @@ router.post('/notifications', async (req, res) => {
     const notifications = [
       { key: 'notification_new_order_email', value: notification_new_order_email || 'off' },
       { key: 'notification_order_shipping_email', value: notification_order_shipping_email || 'off' },
-      { key: 'notification_order_delivery_email', value: notification_order_delivery_email || 'off' }
+      { key: 'notification_order_delivery_email', value: notification_order_delivery_email || 'off' },
+      { key: 'transactional_email', value: notification_order_delivery_email || 'off' },
+      { key: 'transactional_sms', value: notification_order_delivery_email || 'off' },
+      { key: 'promotional_email', value: notification_order_delivery_email || 'off' },
+      { key: 'promotional_sms', value: notification_order_delivery_email || 'off' }
     ];
 
     // Construct the update query
@@ -886,7 +890,7 @@ router.get('/notifications', async (req, res) => {
 
     return sendResponse(res, { data: results, message: ManageResponseStatus('fetched'), status: true }, 200);
   } catch (error) {
-    return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
+    return sendResponse(res, { error: `Error occurred,,,: ${error.message}` }, 500);
   }
 });
 
@@ -955,7 +959,7 @@ router.post('/sendOtp', async (req, res) => {
     await activityLog(ine_users_ModuleID, existingRecord, updatedRecord, 2, 0);
 
     // await sendOTPEmail(email, otp);
-    return sendResponse(res, { message: 'OTP has been sent to your mobile', status: true ,otp:otp}, 200);
+    return sendResponse(res, { message: 'OTP has been sent to your mobile', status: true, otp: otp }, 200);
 
   } catch (error) {
     return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);

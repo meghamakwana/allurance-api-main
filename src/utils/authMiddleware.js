@@ -4,7 +4,7 @@ function authenticateToken(req) {
     return new Promise((resolve, reject) => {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return reject({ error: 'No token provided' });
+            return reject({ message: 'No token provided' });
         }
         const token = authHeader.split(' ')[1];
         try {
@@ -12,7 +12,7 @@ function authenticateToken(req) {
             req.userId = decoded.data.id; // Extract user ID from token payload
             resolve(req);
         } catch (error) {
-            reject({ error: 'Invalid Token' });
+            reject({ message: 'Invalid Token' });
         }
     });
 }

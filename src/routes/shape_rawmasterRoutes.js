@@ -35,7 +35,7 @@ router.post('/', async (req, res) => {
         return sendResponse(res, { data: insertedRecord[0], message: ManageResponseStatus('created'), status: true }, 201);
 
     } catch (error) {
-        return sendResponse(res,{ error: `Error occurred: ${error.message}` }, 500);
+        return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
     }
 });
 
@@ -69,15 +69,15 @@ router.get('/sequenceNumber', async (req, res) => {
             FROM ${tableName} 
             WHERE status!=0
           `);
-          let response = { "seq" : '01'}
-          if(results[0].seq){
-            response.seq=results[0].seq;
-          }
+        let response = { "seq": '01' }
+        if (results[0].seq) {
+            response.seq = results[0].seq;
+        }
         return sendResponse(res, { data: response, message: ManageResponseStatus('fetched'), status: true, count: results.length }, 200);
     } catch (error) {
         return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
     }
-    
+
 });
 
 // Update
