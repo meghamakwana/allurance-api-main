@@ -851,10 +851,10 @@ router.post('/notifications', async (req, res) => {
       { key: 'notification_new_order_email', value: notification_new_order_email || 'off' },
       { key: 'notification_order_shipping_email', value: notification_order_shipping_email || 'off' },
       { key: 'notification_order_delivery_email', value: notification_order_delivery_email || 'off' },
-      { key: 'transactional_email', value: notification_order_delivery_email || 'off' },
-      { key: 'transactional_sms', value: notification_order_delivery_email || 'off' },
-      { key: 'promotional_email', value: notification_order_delivery_email || 'off' },
-      { key: 'promotional_sms', value: notification_order_delivery_email || 'off' }
+      { key: 'transactional_email', value: transactional_email || 'off' },
+      { key: 'transactional_sms', value: transactional_sms || 'off' },
+      { key: 'promotional_email', value: promotional_email || 'off' },
+      { key: 'promotional_sms', value: promotional_sms || 'off' }
     ];
 
     // Construct the update query
