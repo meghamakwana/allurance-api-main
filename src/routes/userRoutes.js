@@ -1009,4 +1009,43 @@ router.post('/validateLoginOtp', async (req, res) => {
   }
 });
 
+router.get('/unsubscribe', async (req, res) => {
+  try {
+
+    await authenticateToken(req);
+
+    const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+    const url = new URL(fullUrl);
+    const userhash = url.searchParams.get('userhash');
+
+    if (!userhash) {
+      return sendResponse(res, { error: 'User Hash must be required', status: false }, 400);
+    }
+
+    const [checkHash] = await pool.query(`SELECT id FROM ${tableName} WHERE userhash = ?`, [userhash]);
+
+    if (checkHash.length === 0) {
+      return sendResponse(res, { error: 'Invalid user hash', status: false }, 404);
+    }
+    const userId = checkHash[0].id;
+    const notifications = [
+      { key: 'promotional_email', value: 'off' },
+      { key: 'promotional_sms', value: 'off' }
+    ];
+
+    // Construct the update query
+    for (const notification of notifications) {
+      const [affectedRows] = await pool.query(`UPDATE ${tableName7} SET meta_value = ?, updated_at = NOW() WHERE user_id = ? AND meta_key = ?`, [notification.value, userId, notification.key]);
+      if (affectedRows.affectedRows === 0) {
+        await pool.query(`INSERT OR IGNORE INTO ${tableName7} (user_id, meta_key, meta_value, created_at) VALUES (?, ?, ?, NOW())`, [userId, notification.key, notification.value]);
+      }
+    }
+    return sendResponse(res, { message: ManageResponseStatus('unsubscribe'), status: true }, 200);
+  }
+  catch (error) {
+    return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
+  }
+});
+
+
 module.exports = router;
