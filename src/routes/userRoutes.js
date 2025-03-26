@@ -1012,8 +1012,6 @@ router.post('/validateLoginOtp', async (req, res) => {
 router.get('/unsubscribe', async (req, res) => {
   try {
 
-    await authenticateToken(req);
-
     const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
     const url = new URL(fullUrl);
     const userhash = url.searchParams.get('userhash');
@@ -1040,6 +1038,7 @@ router.get('/unsubscribe', async (req, res) => {
         await pool.query(`INSERT OR IGNORE INTO ${tableName7} (user_id, meta_key, meta_value, created_at) VALUES (?, ?, ?, NOW())`, [userId, notification.key, notification.value]);
       }
     }
+    const [updatehash] = await pool.query(`UPDATE ${tableName} SET userhash = NULL WHERE id = ? `, [userId]);
     return sendResponse(res, { message: ManageResponseStatus('unsubscribe'), status: true }, 200);
   }
   catch (error) {

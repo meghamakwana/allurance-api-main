@@ -2,9 +2,13 @@
 const express = require('express');
 const router = express.Router();
 const { sendResponse } = require('../commonFunctions');
+const {sendPersonalizedEmail} = require('../utils/emailService');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
-
+const pool = require('../utils/db');
+const TABLE = require('../utils/tables')
+const userTable = TABLE.USERS; // Table name in your database 
+const  metaTable = TABLE.ECOMMMETA;
 // Set up multer for file uploads
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -12,7 +16,7 @@ const upload = multer({ storage });
 // Basic Email Configuration
 const basicEmailConfiguration = async (files = []) => {
     const adminMail = 'jayesh@ineinfotech.com';
-    const adminPass = '';
+    const adminPass = 'sdsdds';
     const transporter = nodemailer.createTransport({
         host: 'smtpout.secureserver.net',
         port: 465,
@@ -45,7 +49,7 @@ router.post('/account-register', async (req, res) => {
         const adminmailOptions = {
             from: adminMail,
             to: adminMail,
-            subject: `New Account Registered (User ID: #${userId}) - INE InfoTech`,
+            subject: `New Account Registered (User ID: #1) - INE InfoTech`,
             text: `Hello Admin,\nA A new account has been registered in our system. Please review the details below:\n\n- Name: ${name}\n- Email: ${email}\n\nPlease ensure to follow up as required.\n\nTeam INE InfoTech,\nThank you`,
             attachments
         };
@@ -168,6 +172,32 @@ router.post('/order-placed', upload.array('files'), async (req, res) => {
 
         return sendResponse(res, { message: "Email Successfully Sent", status: true }, 200);
 
+    } catch (error) {
+        console.error('Error sending email:', error);
+        return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
+    }
+});
+router.post('/send_promotion_email', async (req, res) => {
+    try {
+        const  { subject, body  } = req.body;
+
+        if (!subject || !body) {
+            return sendResponse(res, { error: 'Subject and body both are required' }, 400);
+        }
+        const getUserEmailsQuery= `SELECT U.email  FROM ${metaTable} AS M LEFT JOIN ${userTable} AS U ON M.user_id = U.id WHERE M.meta_key="promotional_email" AND M.meta_value = "on"`;
+        const [emails] = await pool.query(getUserEmailsQuery);
+        if (emails.length === 0) {
+            return sendResponse(res, { error: 'No User found for promotional emails' }, 404);
+        }
+        const emailArray = emails.map((row) => row.email);
+        // Use emailArray as needed
+        await sendPersonalizedEmail(
+            emailArray,
+            subject,
+            body,
+            true // Set to true for HTML email
+        );
+        return sendResponse(res, { message: "Email Successfully Sent", status: true }, 200);
     } catch (error) {
         console.error('Error sending email:', error);
         return sendResponse(res, { error: `Error occurred: ${error.message}` }, 500);
