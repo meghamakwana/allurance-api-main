@@ -6,7 +6,7 @@ const pool = require('../utils/db');
 const mysql = require('mysql2/promise');
 const { getQueryParamId, getRecordById, ManageResponseStatus, sendResponse, getQueryParamIds, checkEmailExistOrNot, validatePassword, checkPhoneExistOrNot, processDocuments, activityLog, requestIDNumber } = require('../commonFunctions');
 const { authenticateToken } = require('../utils/authMiddleware');
-
+const {sendEmail} = require('../utils/emailService');
 const { v4: uuidv4 } = require('uuid');
 const uniqueId = uuidv4();
 
@@ -617,6 +617,7 @@ router.post('/placeorder', async (req, res) => {
                     const rounded_commission_amount = sum_commission_amount.toFixed(2);
                     await pool.query(`UPDATE ine_affiliate_program SET total_orders = ?, total_revenu = ? WHERE id = ?`, [sum_orders, rounded_commission_amount, affiliateId]);
                 }
+
             }
         }
         // Affiliate Program End
@@ -635,7 +636,12 @@ router.post('/placeorder', async (req, res) => {
             }
         }
         // Campaign Coupon Code End
-
+        //send email 
+        sendEmail(
+            email, 
+            `Order Confirmation (Order ID: #${insertedOrderId}) `,
+            `Hello ${first_name},\nThank you for placing an order with us. Your order has been successfully received and is now being processed. We will notify you once your order has been dispatched.\n\nTeam INE InfoTech,\nThank you`
+        );
         return sendResponse(res, { message: "Order has been successfully placed", ...(token ? { accessToken: token } : {}), status: true }, 201);
 
     } catch (error) {
