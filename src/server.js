@@ -75,6 +75,7 @@ const frontendcampaignPortal = require('./routes/frontendcampaignPortal');
 const inventorycampaignPortal = require('./routes/inventoryPortal');
 const managerequestPortal = require('./routes/managerequestPortal');
 const invoiceRoute = require('./routes/invoiceRoute');
+const cronJobRoute = require('./routes/cronJobRoute');
 
 require('dotenv').config();
 
@@ -99,11 +100,11 @@ app.use(cors({
   maxAge: 600
 }));
 
-const upload = multer(); 
+const upload = multer();
 app.use((req, res, next) => {
-    // console.log(`Incoming request: ${req.method} ${req.url}`);
-    // console.log(`Headers: ${JSON.stringify(req.headers)}`);
-    next();
+  // console.log(`Incoming request: ${req.method} ${req.url}`);
+  // console.log(`Headers: ${JSON.stringify(req.headers)}`);
+  next();
 });
 
 app.use((req, res, next) => {
@@ -185,11 +186,8 @@ app.use('/api/frontendcampaignlist', frontendcampaignPortal);
 app.use('/api/inventory', inventorycampaignPortal);
 app.use('/api/managerequest', managerequestPortal);
 app.use('/api/offlinesales/invoice', invoiceRoute);
+app.use('/cron', cronJobRoute);
 
-
-// app.listen(port, () => {
-//   console.log(`Server running on ${process.env.NEXT_PUBLIC_API_URL}`);
-// });
 app.listen(port, () => {
   console.log(`Server running on ${port}`);
 });
